@@ -2,64 +2,10 @@ import { createHighlighterCore, type HighlighterCore } from 'shiki/core'
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 import darkPlus from 'shiki/themes/dark-plus.mjs'
 import lightPlus from 'shiki/themes/light-plus.mjs'
+import { aliasExtensions, grammarLoaders } from './grammars.js'
 
-/** grammarLoaders imports one grammar on demand; each entry is its own bundle chunk. */
-const grammarLoaders: Record<string, GrammarLoader> = {
-  bash: () => import('shiki/langs/shellscript.mjs'),
-  c: () => import('shiki/langs/c.mjs'),
-  clojure: () => import('shiki/langs/clojure.mjs'),
-  cpp: () => import('shiki/langs/cpp.mjs'),
-  csharp: () => import('shiki/langs/csharp.mjs'),
-  css: () => import('shiki/langs/css.mjs'),
-  dart: () => import('shiki/langs/dart.mjs'),
-  diff: () => import('shiki/langs/diff.mjs'),
-  dockerfile: () => import('shiki/langs/dockerfile.mjs'),
-  elixir: () => import('shiki/langs/elixir.mjs'),
-  erlang: () => import('shiki/langs/erlang.mjs'),
-  go: () => import('shiki/langs/go.mjs'),
-  graphql: () => import('shiki/langs/graphql.mjs'),
-  groovy: () => import('shiki/langs/groovy.mjs'),
-  haskell: () => import('shiki/langs/haskell.mjs'),
-  hcl: () => import('shiki/langs/hcl.mjs'),
-  html: () => import('shiki/langs/html.mjs'),
-  ini: () => import('shiki/langs/ini.mjs'),
-  java: () => import('shiki/langs/java.mjs'),
-  javascript: () => import('shiki/langs/javascript.mjs'),
-  json: () => import('shiki/langs/json.mjs'),
-  jsonc: () => import('shiki/langs/jsonc.mjs'),
-  jsx: () => import('shiki/langs/jsx.mjs'),
-  kotlin: () => import('shiki/langs/kotlin.mjs'),
-  less: () => import('shiki/langs/less.mjs'),
-  lua: () => import('shiki/langs/lua.mjs'),
-  make: () => import('shiki/langs/make.mjs'),
-  markdown: () => import('shiki/langs/markdown.mjs'),
-  nginx: () => import('shiki/langs/nginx.mjs'),
-  'objective-c': () => import('shiki/langs/objective-c.mjs'),
-  perl: () => import('shiki/langs/perl.mjs'),
-  php: () => import('shiki/langs/php.mjs'),
-  powershell: () => import('shiki/langs/powershell.mjs'),
-  proto: () => import('shiki/langs/proto.mjs'),
-  python: () => import('shiki/langs/python.mjs'),
-  r: () => import('shiki/langs/r.mjs'),
-  ruby: () => import('shiki/langs/ruby.mjs'),
-  rust: () => import('shiki/langs/rust.mjs'),
-  scala: () => import('shiki/langs/scala.mjs'),
-  scss: () => import('shiki/langs/scss.mjs'),
-  shellscript: () => import('shiki/langs/shellscript.mjs'),
-  sql: () => import('shiki/langs/sql.mjs'),
-  svelte: () => import('shiki/langs/svelte.mjs'),
-  swift: () => import('shiki/langs/swift.mjs'),
-  toml: () => import('shiki/langs/toml.mjs'),
-  tsx: () => import('shiki/langs/tsx.mjs'),
-  typescript: () => import('shiki/langs/typescript.mjs'),
-  vue: () => import('shiki/langs/vue.mjs'),
-  xml: () => import('shiki/langs/xml.mjs'),
-  yaml: () => import('shiki/langs/yaml.mjs'),
-  zig: () => import('shiki/langs/zig.mjs'),
-}
-
-/** extensionLanguages maps a file extension to the grammar that renders it. */
-const extensionLanguages: Record<string, string> = {
+/** extensionOverrides covers extensions shiki's own aliases do not, and wins over them. */
+const extensionOverrides: Record<string, string> = {
   bash: 'shellscript', sh: 'shellscript', zsh: 'shellscript', fish: 'shellscript',
   c: 'c', h: 'c',
   cc: 'cpp', cpp: 'cpp', cxx: 'cpp', hpp: 'cpp', hh: 'cpp',
@@ -139,11 +85,22 @@ export function languageForPath(path: string): string {
   const name = (path.split('/').pop() ?? '').toLowerCase()
   const byName = filenameLanguages[name]
   if (byName) {
-    return byName
+    return resolveGrammar(byName)
   }
   const extension = name.includes('.') ? (name.split('.').pop() ?? '') : ''
-  const language = extensionLanguages[extension]
-  return language && grammarLoaders[language] ? language : plaintext
+  return resolveGrammar(extensionOverrides[extension] ?? aliasExtensions[extension])
+}
+
+/** resolveGrammar turns a grammar id or one of shiki's aliases into a loadable id. */
+function resolveGrammar(name: string | undefined): string {
+  if (!name) {
+    return plaintext
+  }
+  if (grammarLoaders[name]) {
+    return name
+  }
+  const aliased = aliasExtensions[name]
+  return aliased && grammarLoaders[aliased] ? aliased : plaintext
 }
 
 /** activeTheme reads the theme VS Code stamped on the document body. */
@@ -215,7 +172,4 @@ export interface HastNode {
   children?: HastNode[]
 }
 
-/** GrammarLoader imports one grammar module lazily. */
-type GrammarLoader = () => Promise<{ default: Parameters<HighlighterCore['loadLanguage']>[0] }>
-
-export const __test = { grammarLoaders, extensionLanguages, filenameLanguages }
+export const __test = { grammarLoaders, extensionOverrides, filenameLanguages, aliasExtensions }

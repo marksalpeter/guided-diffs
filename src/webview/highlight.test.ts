@@ -34,7 +34,8 @@ describe('languageForPath', () => {
   })
 
   it('recognises files whose name carries the language, not the extension', () => {
-    expect(languageForPath('Dockerfile')).toBe('dockerfile')
+    // shiki's id is `docker`; `dockerfile` is only an alias
+    expect(languageForPath('Dockerfile')).toBe('docker')
     expect(languageForPath('build/Makefile')).toBe('make')
     expect(languageForPath('Gemfile')).toBe('ruby')
   })
@@ -53,13 +54,24 @@ describe('languageForPath', () => {
     expect(languageForPath('')).toBe(plaintext)
   })
 
-  it('only maps extensions to grammars it can actually load', () => {
-    for (const [extension, language] of Object.entries(__test.extensionLanguages)) {
-      expect(__test.grammarLoaders[language], `${extension} -> ${language}`).toBeDefined()
+  it('only maps to grammars it can actually load', () => {
+    const loadable = (target: string) =>
+      __test.grammarLoaders[target] ?? __test.grammarLoaders[__test.aliasExtensions[target] ?? '']
+    for (const [extension, language] of Object.entries(__test.extensionOverrides)) {
+      expect(loadable(language), `${extension} -> ${language}`).toBeDefined()
     }
     for (const [name, language] of Object.entries(__test.filenameLanguages)) {
-      expect(__test.grammarLoaders[language], `${name} -> ${language}`).toBeDefined()
+      expect(loadable(language), `${name} -> ${language}`).toBeDefined()
     }
+    for (const alias of Object.values(__test.aliasExtensions)) {
+      expect(__test.grammarLoaders[alias], `alias target ${alias}`).toBeDefined()
+    }
+  })
+
+  it('resolves an alias to the real grammar id', () => {
+    expect(languageForPath('a.dockerfile')).toBe('docker')
+    expect(languageForPath('a.yml')).toBe('yaml')
+    expect(languageForPath('a.rs')).toBe('rust')
   })
 })
 
@@ -102,7 +114,7 @@ describe('loadRefractor', () => {
     const shim = await loadRefractor(['app.py', 'Dockerfile', 'ci.yml'], 'dark-plus')
     for (const [source, language] of [
       ['def main():\n    return 1', 'python'],
-      ['FROM node:22\nRUN npm ci', 'dockerfile'],
+      ['FROM node:22\nRUN npm ci', 'docker'],
       ['on:\n  push:\n    branches: [main]', 'yaml'],
     ] as const) {
       expect(textOf(shim.highlight(source, language))).toBe(source)

@@ -105,16 +105,22 @@ grammars VS Code itself uses, bridged into the library's refractor-shaped hook. 
 colour and font comes from `--vscode-*` theme variables, so the panel looks native in
 any theme.
 
-**Grammars load per review, not up front.** The review's changed paths decide which of
-the 52 bundled grammars to import, so opening a TypeScript review never parses the C++
-grammar. Bundling all of them instead cost a measured +419 ms on every panel open; this
-way the entry bundle is 464 KB (147 KB gzip) and a typical review loads two or three
-grammar chunks off disk.
+**Grammars load per review, not up front.** All 242 of Shiki's languages ship, split one
+chunk per grammar; the review's changed paths decide which to import, so opening a
+TypeScript review never parses the C++ grammar. Bundling them eagerly instead cost a
+measured +419 ms on every panel open. This way the entry bundle is 485 KB (154 KB gzip),
+first highlighted row lands in ~700 ms regardless of language count, and the only price
+is vsix size — 2 MB rather than 745 KB.
+
+`src/webview/grammars.ts` is generated from Shiki's own language metadata by
+`npm run gen:grammars`; re-run it after upgrading Shiki. `extensionOverrides` in
+`highlight.ts` holds only the extensions Shiki's aliases miss (`.h`, `.hpp`, `.tf`,
+`.gradle`, and friends).
 
 ## Tests
 
 ```sh
-npm test          # 147 unit and integration tests
+npm test          # 148 unit and integration tests
 npm run typecheck
 npm run lint
 ```
@@ -154,8 +160,8 @@ money per run. Run that locally before tagging.
 - Large diffs are not virtualised yet. `react-diff-view` mounts every row, so a
   several-thousand-line diff will feel heavy; per-file lazy mounting is the planned fix.
 - Binary files render as a stub and cannot be commented on.
-- Syntax highlighting covers 52 languages and the common config formats (yaml, toml,
-  hcl/terraform, sql, dockerfile, proto, ini, make, xml); anything else renders as plain
-  text. Adding one is a line in `grammarLoaders` plus its extensions.
+- Syntax highlighting covers every language Shiki ships (242), including the config
+  formats a diff is full of. A file whose extension is not mapped renders as plain text
+  even when a grammar exists — add it to `extensionOverrides`.
 - Themes other than Default Dark+/Light+ get correct UI colours but Dark+/Light+ token
   colours — VS Code exposes no API for a theme's syntax colours.

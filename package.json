@@ -1,0 +1,107 @@
+{
+  "name": "guided-diffs",
+  "displayName": "Guided Diffs",
+  "description": "Review your own commits locally, with an AI-guided narrative and comment threads a coding agent can read and reply to.",
+  "version": "0.1.0",
+  "publisher": "marksalpeter",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marksalpeter/guided-diffs.git"
+  },
+  "engines": {
+    "node": ">=20",
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "bin": {
+    "gdr": "./dist/cli.js"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "guidedDiffs.reviewBranch",
+        "title": "Review Branch",
+        "category": "Guided Diffs"
+      },
+      {
+        "command": "guidedDiffs.compareCommits",
+        "title": "Compare Two Commits",
+        "category": "Guided Diffs"
+      },
+      {
+        "command": "guidedDiffs.installAgentSupport",
+        "title": "Install Claude Code Skill and CLI",
+        "category": "Guided Diffs"
+      },
+      {
+        "command": "guidedDiffs.deleteReview",
+        "title": "Delete Review",
+        "category": "Guided Diffs"
+      }
+    ],
+    "configuration": {
+      "title": "Guided Diffs",
+      "properties": {
+        "guidedDiffs.defaultBranch": {
+          "type": "string",
+          "default": "",
+          "description": "Override the detected default branch (e.g. 'main'). Empty means auto-detect."
+        },
+        "guidedDiffs.claudePath": {
+          "type": "string",
+          "default": "claude",
+          "description": "Path to the Claude Code CLI used to generate guided reviews."
+        },
+        "guidedDiffs.model": {
+          "type": "string",
+          "default": "claude-opus-5",
+          "description": "Model passed to Claude Code when generating a guided review."
+        },
+        "guidedDiffs.autoGenerateGuide": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate the guided review automatically when a review is opened."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run build:webview && npm run build:node",
+    "build:node": "node esbuild.mjs",
+    "build:webview": "vite build",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "npm run build && vsce package",
+    "vscode:prepublish": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.17.0",
+    "react": "^19.0.0",
+    "react-diff-view": "^3.3.3",
+    "react-dom": "^19.0.0",
+    "shiki": "^4.4.3",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0",
+    "vitest": "^5.0.0"
+  }
+}

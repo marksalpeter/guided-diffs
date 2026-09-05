@@ -1,0 +1,11 @@
+.vscode/**
+src/**
+node_modules/**
+out/**
+*.md
+!README.md
+tsconfig*.json
+vite.config.ts
+vitest.config.ts
+esbuild.mjs
+eslint.config.mjs

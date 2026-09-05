@@ -3,11 +3,13 @@ import { unansweredThreads, unresolvedThreads } from '../core/fold.js'
 import { Git } from '../core/git.js'
 import { ReviewService } from '../core/review.js'
 import { ReviewStore } from '../core/store.js'
+import { openCommand, reviewUri } from '../core/uri.js'
 import { noThreadsMessage, renderThreads } from './render.js'
 
 /** usage is printed for `--help` and for any unrecognised invocation. */
 const usage = `gdr — read and reply to guided review comments
 
+  gdr review                             open the review panel for the current branch
   gdr comments [--unanswered] [--json]   list unresolved threads for the current review
   gdr reply <thread-id> -m <message>     reply to a thread
 
@@ -18,6 +20,8 @@ export async function main(argv: readonly string[], out: Writer = process.stdout
   const [command, ...rest] = argv
   try {
     switch (command) {
+      case 'review':
+        return await runReview(out)
       case 'comments':
         return await runComments(rest, out)
       case 'reply':
@@ -35,6 +39,17 @@ export async function main(argv: readonly string[], out: Writer = process.stdout
     err.write(`${messageOf(error)}\n`)
     return 1
   }
+}
+
+/** runReview asks the editor to open, and advance, the review for the current branch. */
+async function runReview(out: Writer): Promise<number> {
+  const root = await repoRoot()
+  // the shim records the editor's own scheme, so Cursor and Insiders deep-link to themselves
+  const uri = reviewUri(process.env.GDR_URI_SCHEME ?? 'vscode', root)
+  const { command, args } = openCommand(process.platform, uri)
+  await new SystemExec(root).run(command, args)
+  out.write(`opening the review panel for ${root}\n`)
+  return 0
 }
 
 /** runComments prints the unresolved threads for the review covering the current HEAD. */

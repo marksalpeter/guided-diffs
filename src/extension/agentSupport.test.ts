@@ -33,6 +33,11 @@ describe('agent support', () => {
     expect((await stat(path)).mode & 0o111).toBeTruthy()
   })
 
+  it('records the editor uri scheme so the cli can deep-link back', async () => {
+    const path = await writeShim(dir, '/usr/bin/code', '/ext/dist/cli.js', { GDR_URI_SCHEME: 'cursor' })
+    expect(await readFile(path, 'utf8')).toContain("GDR_URI_SCHEME='cursor' ELECTRON_RUN_AS_NODE=1")
+  })
+
   it('quotes paths containing spaces', async () => {
     const path = await writeShim(dir, '/Applications/Visual Studio Code.app/Contents/MacOS/Electron', '/a b/cli.js')
     expect(await readFile(path, 'utf8')).toContain("'/Applications/Visual Studio Code.app/Contents/MacOS/Electron'")
@@ -75,6 +80,7 @@ describe('agent support', () => {
       gitCommonDir: join(dir, '.git'),
       nodePath: '/usr/bin/code',
       cliPath: '/ext/dist/cli.js',
+      uriScheme: 'vscode',
     })
 
     const skill = await readFile(join(dir, skillRelativePath), 'utf8')
@@ -91,7 +97,7 @@ describe('agent support', () => {
     await exec.run('git', ['config', 'user.name', 'T'])
     const gitCommonDir = (await exec.run('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'])).trim()
 
-    await installAgentSupport({ repoRoot: dir, gitCommonDir, nodePath: '/usr/bin/code', cliPath: '/ext/dist/cli.js' })
+    await installAgentSupport({ repoRoot: dir, gitCommonDir, nodePath: '/usr/bin/code', cliPath: '/ext/dist/cli.js', uriScheme: 'vscode' })
 
     const status = await exec.run('git', ['status', '--porcelain'])
     expect(status).not.toContain('.claude')

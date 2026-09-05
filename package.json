@@ -22,7 +22,8 @@
     "gdr": "./dist/cli.js"
   },
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onUri"
   ],
   "contributes": {
     "commands": [

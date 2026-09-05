@@ -19,6 +19,13 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage('Guided Diffs: Claude Code skill and CLI installed.')
       }),
     ),
+    vscode.window.registerUriHandler({
+      handleUri: uri => {
+        if (uri.path === '/review') {
+          void openFromUri(uri, assets)
+        }
+      },
+    }),
     vscode.window.registerWebviewPanelSerializer(viewType, {
       async deserializeWebviewPanel(panel, state: unknown) {
         const key = (state as { key?: string } | undefined)?.key ?? panel.title.replace(/^Review /, '')
@@ -54,6 +61,14 @@ async function compareCommits(service: ReviewService, assets: vscode.Uri): Promi
   ReviewPanel.show(service, await service.openRangeReview(base, head), assets)
 }
 
+/** openFromUri opens the branch review for the repository a `gdr review` deep link names. */
+async function openFromUri(uri: vscode.Uri, assets: vscode.Uri): Promise<void> {
+  const repo = new URLSearchParams(uri.query).get('repo') ?? ''
+  // the link can land in any window running the extension, so prefer the folder it asked for
+  const folder = vscode.workspace.workspaceFolders?.find(candidate => repo.startsWith(candidate.uri.fsPath))
+  await run(assets, reviewBranch, { service: folder ? await serviceFor(folder) : undefined })
+}
+
 /** deleteReview removes one review's log after confirmation. */
 async function deleteReview(service: ReviewService): Promise<void> {
   const keys = await service.reviews.list()
@@ -75,6 +90,7 @@ async function install(context: vscode.ExtensionContext, service: ReviewService)
     gitCommonDir: await service.repo.gitCommonDir(),
     nodePath: process.execPath,
     cliPath: vscode.Uri.joinPath(context.extensionUri, 'dist', 'cli.js').fsPath,
+    uriScheme: vscode.env.uriScheme,
   })
 }
 
@@ -82,10 +98,10 @@ async function install(context: vscode.ExtensionContext, service: ReviewService)
 async function run(
   assets: vscode.Uri,
   command: (service: ReviewService, assets: vscode.Uri) => Promise<void>,
-  options: { silent?: boolean } = {},
+  options: { silent?: boolean; service?: ReviewService } = {},
 ): Promise<void> {
   try {
-    const service = await currentService()
+    const service = options.service ?? (await currentService())
     if (!service) {
       if (!options.silent) {
         void vscode.window.showErrorMessage('Guided Diffs: open a git repository first.')
@@ -103,9 +119,11 @@ async function run(
 /** currentService builds a review service for the workspace folder the user is working in. */
 async function currentService(): Promise<ReviewService | undefined> {
   const folder = await currentFolder()
-  if (!folder) {
-    return undefined
-  }
+  return folder ? serviceFor(folder) : undefined
+}
+
+/** serviceFor builds a review service for one workspace folder, unless it holds no repository. */
+async function serviceFor(folder: vscode.WorkspaceFolder): Promise<ReviewService | undefined> {
   const override = vscode.workspace.getConfiguration('guidedDiffs').get('defaultBranch', '')
   const git = new Git(folder.uri.fsPath, undefined, override)
   try {

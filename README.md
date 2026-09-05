@@ -69,7 +69,7 @@ On activation the extension writes two things into your workspace:
 
 - `.guided-review/bin/gdr` — the CLI, run through VS Code's own Node so it works with
   no `node` on `PATH`.
-- `.claude/skills/guided-diffs/SKILL.md` — the skill that teaches Claude Code the two
+- `.claude/skills/guided-diffs/SKILL.md` — the skill that teaches Claude Code the
   commands below.
 
 Both are hidden from git: the store ignores itself, and the skill is added to
@@ -77,6 +77,7 @@ Both are hidden from git: the store ignores itself, and the skill is added to
 touched.
 
 ```sh
+.guided-review/bin/gdr review                 # open the panel on this branch
 .guided-review/bin/gdr comments               # unresolved threads, as markdown
 .guided-review/bin/gdr comments --unanswered  # only ones you have not answered
 .guided-review/bin/gdr comments --json        # the same, structured

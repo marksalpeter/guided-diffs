@@ -10,23 +10,24 @@ export const shimRelativePath = `${storeDir}/bin/gdr`
 export const skillRelativePath = '.claude/skills/guided-diffs/SKILL.md'
 
 /** skillVersion is bumped whenever the skill's contract changes, forcing a rewrite. */
-export const skillVersion = 1
+export const skillVersion = 2
 
 /** installAgentSupport writes the shim and skill, and hides the skill from git for this clone only. */
 export async function installAgentSupport(options: InstallOptions): Promise<void> {
   // the shim lives inside the store, so the store's self-ignoring .gitignore must exist first
   await new ReviewStore(options.repoRoot).ensureStoreDir()
-  await writeShim(options.repoRoot, options.nodePath, options.cliPath)
+  await writeShim(options.repoRoot, options.nodePath, options.cliPath, { GDR_URI_SCHEME: options.uriScheme })
   await writeSkill(options.repoRoot)
   await excludeFromGit(options.gitCommonDir, skillRelativePath)
 }
 
 /** writeShim drops an executable launcher that runs the bundled CLI through VS Code's own Node. */
-export async function writeShim(repoRoot: string, nodePath: string, cliPath: string): Promise<string> {
+export async function writeShim(repoRoot: string, nodePath: string, cliPath: string, env: Record<string, string> = {}): Promise<string> {
   const target = join(repoRoot, shimRelativePath)
   await mkdir(dirname(target), { recursive: true })
+  const exported = Object.entries(env).map(([name, value]) => `${name}=${quote(value)} `).join('')
   // ELECTRON_RUN_AS_NODE lets the editor's bundled binary act as plain node, so PATH need not have one
-  const script = ['#!/bin/sh', `ELECTRON_RUN_AS_NODE=1 exec ${quote(nodePath)} ${quote(cliPath)} "$@"`, ''].join('\n')
+  const script = ['#!/bin/sh', `${exported}ELECTRON_RUN_AS_NODE=1 exec ${quote(nodePath)} ${quote(cliPath)} "$@"`, ''].join('\n')
   await writeFile(target, script)
   await chmod(target, 0o755)
   return target
@@ -83,7 +84,14 @@ line number, the quoted code, the whole conversation, and a thread id.
 - \`--json\` emits the same data as JSON.
 
 Resolved threads are never shown. If the command says no review has been
-opened, tell the user to run **Guided Diffs: Review Branch** in VS Code.
+opened, open one yourself:
+
+\`\`\`sh
+${shimRelativePath} review
+\`\`\`
+
+That opens the review panel on the current branch in the editor, generating the
+guide if the branch has none, and is also how you show the human your work.
 If the file at \`${shimRelativePath}\` does not exist, the Guided Diffs
 extension is not installed — say so rather than guessing.
 
@@ -133,6 +141,7 @@ export interface InstallOptions {
   gitCommonDir: string
   nodePath: string
   cliPath: string
+  uriScheme: string
 }
 
 export const __test = { skillBody, quote, readFileOr }

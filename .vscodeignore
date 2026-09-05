@@ -9,3 +9,6 @@ vite.config.ts
 vitest.config.ts
 esbuild.mjs
 eslint.config.mjs
+scripts/**
+media/screenshot-light.png
+.github/**

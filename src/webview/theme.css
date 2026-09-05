@@ -142,21 +142,35 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 
 /* ── diff ──────────────────────────────────────────────────────────────── */
 
-.diff {
-  font-family: var(--vscode-editor-font-family);
-  font-size: var(--vscode-editor-font-size);
-  background: var(--vscode-editor-background);
-  color: var(--vscode-editor-foreground);
+/* react-diff-view is driven entirely by its own --diff-* variables; map them onto the
+   VS Code theme rather than fighting its selectors. Its defaults are light-mode literals
+   and `color: initial`, which render as white-on-pale-green in a dark theme. */
+:root {
+  --diff-background-color: var(--vscode-editor-background);
+  --diff-text-color: var(--vscode-editor-foreground);
+  --diff-font-family: var(--vscode-editor-font-family);
+  --diff-selection-background-color: var(--vscode-editor-selectionBackground, #264f78);
+  --diff-gutter-insert-background-color: var(--vscode-diffEditor-insertedLineBackground);
+  --diff-gutter-delete-background-color: var(--vscode-diffEditor-removedLineBackground);
+  --diff-gutter-insert-text-color: var(--vscode-editorLineNumber-foreground);
+  --diff-gutter-delete-text-color: var(--vscode-editorLineNumber-foreground);
+  --diff-code-insert-background-color: var(--vscode-diffEditor-insertedLineBackground);
+  --diff-code-delete-background-color: var(--vscode-diffEditor-removedLineBackground);
+  --diff-code-insert-edit-background-color: var(--vscode-diffEditor-insertedTextBackground);
+  --diff-code-delete-edit-background-color: var(--vscode-diffEditor-removedTextBackground);
+  /* inherit keeps Shiki's per-token colours visible inside a word-level edit mark */
+  --diff-code-insert-edit-text-color: inherit;
+  --diff-code-delete-edit-text-color: inherit;
+  --diff-code-insert-text-color: inherit;
+  --diff-code-delete-text-color: inherit;
+  --diff-code-selected-background-color: var(--vscode-editor-lineHighlightBackground);
+  --diff-omit-gutter-line-color: var(--vscode-panel-border);
 }
 
-.diff-gutter { color: var(--vscode-editorLineNumber-foreground); cursor: pointer; user-select: none; }
-.diff-gutter:hover { color: var(--vscode-editorLineNumber-activeForeground); background: var(--vscode-editor-lineHighlightBackground); }
-.diff-code-insert { background: var(--vscode-diffEditor-insertedLineBackground); }
-.diff-code-delete { background: var(--vscode-diffEditor-removedLineBackground); }
-.diff-gutter-insert { background: var(--vscode-diffEditor-insertedLineBackground); }
-.diff-gutter-delete { background: var(--vscode-diffEditor-removedLineBackground); }
-.diff-code-edit, .diff-code-mark { background: var(--vscode-diffEditor-insertedTextBackground); border-radius: 2px; }
-.diff-code-delete .diff-code-edit { background: var(--vscode-diffEditor-removedTextBackground); }
+.diff { font-size: var(--vscode-editor-font-size); }
+.diff-gutter { cursor: pointer; user-select: none; }
+.diff-gutter:hover { color: var(--vscode-editorLineNumber-activeForeground); }
+.diff-code-edit, .diff-code-mark { border-radius: 2px; }
 .diff-decoration { color: var(--vscode-descriptionForeground); background: var(--vscode-editor-background); }
 
 /* ── threads ───────────────────────────────────────────────────────────── */

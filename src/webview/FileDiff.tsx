@@ -12,11 +12,11 @@ import {
   type FileData,
   type HunkTokens,
   type RenderToken,
-  type TokenNode,
 } from 'react-diff-view'
 import type { ChangedFile, Thread } from '../core/types.js'
 import { CommentThread, NewCommentBox } from './CommentThread.js'
 import { languageForPath, type RefractorLike } from './highlight.js'
+import { classNameOf, markClassName, styleOf } from './tokens.js'
 import { post } from './vscodeApi.js'
 
 /** FileDiff renders one changed file, its threads, and the composer for new comments. */
@@ -139,39 +139,23 @@ function useWidgets(
   }, [file, threads, pending, setPending])
 }
 
-/** renderToken draws one syntax token, honouring the inline styles Shiki emits. */
+/** renderToken draws one syntax token, recursing so Shiki's inline styles survive edit marks. */
 const renderToken: RenderToken = (token, renderDefault, index) => {
-  const style = styleOf(token)
-  if (!style) {
+  if (token.type === 'text') {
+    return token.value
+  }
+  const children =
+    typeof token.value === 'string'
+      ? token.value
+      : token.children?.map((child, i) => renderToken(child, renderDefault, i))
+  if (children === undefined) {
     return renderDefault(token, index)
   }
   return (
-    <span key={index} className={classNameOf(token)} style={style}>
-      {typeof token.value === 'string' ? token.value : token.children?.map((child, i) => renderToken(child, renderDefault, i))}
+    <span key={index} className={markClassName(token) ?? classNameOf(token)} style={styleOf(token)}>
+      {children}
     </span>
   )
-}
-
-/** styleOf converts Shiki's inline style string into React's style object. */
-function styleOf(token: TokenNode): Record<string, string> | undefined {
-  const declarations = (token.properties as { style?: string } | undefined)?.style
-  if (typeof declarations !== 'string' || declarations.length === 0) {
-    return undefined
-  }
-  const style: Record<string, string> = {}
-  for (const declaration of declarations.split(';')) {
-    const [property, value] = declaration.split(':')
-    if (property && value) {
-      style[property.trim().replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase())] = value.trim()
-    }
-  }
-  return style
-}
-
-/** classNameOf reads whichever class shape the token carries. */
-function classNameOf(token: TokenNode): string | undefined {
-  const raw = (token.properties as { className?: string | string[] } | undefined)?.className
-  return Array.isArray(raw) ? raw.join(' ') : raw
 }
 
 /** pendingFor turns a clicked change into the composer target for that line. */

@@ -3,3 +3,6 @@ dist/
 out/
 *.vsix
 .vscode-test/
+guided-diffs-*.vsix
+scripts/payload.json
+scripts/render-stats.json

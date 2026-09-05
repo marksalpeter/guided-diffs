@@ -194,8 +194,8 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
   overflow: hidden;
 }
 
-.gdr-file.viewed { opacity: 0.6; }
-.gdr-file.viewed:hover { opacity: 1; }
+.gdr-file.reviewed { opacity: 0.6; }
+.gdr-file.reviewed:hover { opacity: 1; }
 
 .gdr-file-header {
   position: sticky;

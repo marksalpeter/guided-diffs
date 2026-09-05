@@ -98,7 +98,7 @@ async function main(): Promise<void> {
 
   const readme = (await service.load(key)).files.find(f => f.path === 'README.md')
   if (readme?.newBlob) {
-    await service.markViewed(key, 'README.md', readme.newBlob)
+    await service.markReviewed(key, 'README.md', readme.newBlob)
   }
 
   process.stderr.write('generating guide with claude…\n')

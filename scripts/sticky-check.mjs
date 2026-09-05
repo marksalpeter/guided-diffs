@@ -12,7 +12,7 @@ const server=createServer(async(req,res)=>{const url=(req.url??'/').split('?')[0
  if(url.startsWith('/h')){res.writeHead(200,{'Content-Type':'text/html'});res.end(harness);return}
  try{const b=await readFile(join('dist/webview',url));res.writeHead(200,{'Content-Type':types[extname(url)]??'application/octet-stream'});res.end(b)}catch{res.writeHead(404);res.end()}})
 await new Promise(r=>server.listen(4323,r))
-const browser=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--no-sandbox']})
+const browser=await chromium.launch({args:['--no-sandbox']})
 const page=await browser.newPage({viewport:{width:1440,height:900}})
 await page.goto('http://localhost:4323/h',{waitUntil:'networkidle'})
 await page.waitForSelector('.gdr-file')

@@ -78,7 +78,7 @@ const server = createServer(async (req, res) => {
 })
 await new Promise(r => server.listen(4319, r))
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] })
+const browser = await chromium.launch({ args: ['--no-sandbox'] })
 const errors = []
 for (const theme of ['dark', 'light']) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 })
@@ -96,7 +96,7 @@ for (const theme of ['dark', 'light']) {
       styledTokens: document.querySelectorAll('.diff-code span[style*="color"]').length,
       insertRows: document.querySelectorAll('.diff-code-insert').length,
       firstGroup: document.querySelector('.gdr-group-title')?.textContent,
-      viewedFiles: document.querySelectorAll('.gdr-file.viewed').length,
+      reviewedFiles: document.querySelectorAll('.gdr-file.reviewed').length,
       resolvedThreads: document.querySelectorAll('.gdr-thread.resolved').length,
       composers: document.querySelectorAll('.gdr-composer').length,
       firstFile: document.querySelector('.gdr-file-header strong')?.textContent,

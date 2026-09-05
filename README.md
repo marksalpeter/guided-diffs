@@ -5,7 +5,7 @@ narrative of the change, and comment threads a coding agent can read and reply t
 
 Everything is local. Review state never enters git and never reaches a server.
 
-![The guided review, showing chapter summaries beside their diffs, a comment thread with an agent reply, and per-file Viewed ticks](media/screenshot-dark.png)
+![The guided review, showing chapter summaries beside their diffs, a comment thread with an agent reply, and per-file Reviewed ticks](media/screenshot-dark.png)
 
 ## What it does
 
@@ -28,13 +28,17 @@ you can expand again. Commenting on a resolved thread reopens it. You resolve; n
 else can.
 
 **Tick files off as you go.** Each file has a *Reviewed* checkbox that collapses it, and
-each chapter shows how many of its files are done. The tick is recorded against that
-file's blob, so it clears itself the moment the file changes underneath you.
+each chapter has one that ticks off every file it covers at once, beside its own count.
+The tick is recorded against that file's blob, so it clears itself the moment the file
+changes underneath you.
 
 **The left column is the map.** Before a guide exists it is one stacked list of every
 changed file; clicking a card scrolls the diff pane to it. Once the guide lands the list
-breaks into its chapters, each under its own title and summary. While generation runs, a
-pill floats over the bottom of the column with the review's total diffstat.
+breaks into its chapters, each under its own title and summary. Generation starts on its
+own when a review has no guide yet, and a pill floats over the bottom of the column with
+the review's total diffstat while it runs. Narrow the panel and the two columns collapse:
+each chapter's guide sits directly above the diffs it describes, and the file list goes
+away.
 
 **Hand them to an agent.** Tell Claude "address the guided review comments". It reads
 your threads, fixes the code, commits, and replies — and the replies appear in the

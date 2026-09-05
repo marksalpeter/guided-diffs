@@ -6,7 +6,7 @@ import type { GuideGroup, Thread } from '../core/types.js'
 import { CommentThread } from './CommentThread.js'
 import { FileDiff, fileAnchorId, pathOf } from './FileDiff.js'
 import { GuideStatus } from './GuideStatus.js'
-import { activeTheme, createRefractorShim } from './highlight.js'
+import { activeTheme, loadRefractor, type RefractorLike } from './highlight.js'
 import { loadViewState, post, saveViewState } from './vscodeApi.js'
 
 /** kindLabels name each chapter's role in the reading order. */
@@ -26,8 +26,8 @@ export const App = () => {
   useHostMessages(setPayload, setFatal)
   useEffect(() => saveViewState({ mode, collapsed: [...collapsed] }), [mode, collapsed])
 
-  const refractor = useMemo(() => createRefractorShim(activeTheme()), [])
   const files = useMemo(() => (payload ? parseDiff(payload.diff) : []), [payload])
+  const refractor = useRefractor(files)
   const chapters = useChapters(files, payload, mode)
   const scroller = useRef<HTMLDivElement>(null)
   useScrollAnchor(scroller, chapters)
@@ -135,6 +135,26 @@ const OutdatedThreads = ({ threads }: { threads: Thread[] }) => (
     ))}
   </div>
 )
+
+/** useRefractor loads only the grammars this review's files need, rendering plain until ready. */
+function useRefractor(files: FileData[]): RefractorLike | null {
+  const [refractor, setRefractor] = useState<RefractorLike | null>(null)
+  const paths = files.map(pathOf).join('|')
+
+  useEffect(() => {
+    let live = true
+    void loadRefractor(paths ? paths.split('|') : [], activeTheme()).then(loaded => {
+      if (live) {
+        setRefractor(loaded)
+      }
+    })
+    return () => {
+      live = false
+    }
+  }, [paths])
+
+  return refractor
+}
 
 /** useHostMessages subscribes to the extension host and announces readiness once. */
 function useHostMessages(onReview: (payload: ReviewPayload) => void, onError: (message: string) => void): void {

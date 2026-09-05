@@ -15,7 +15,7 @@ import {
 } from 'react-diff-view'
 import type { ChangedFile, Thread } from '../core/types.js'
 import { CommentThread, NewCommentBox } from './CommentThread.js'
-import { languageForPath, type RefractorLike } from './highlight.js'
+import { languageForPath, plaintext, type RefractorLike } from './highlight.js'
 import { classNameOf, markClassName, styleOf } from './tokens.js'
 import { post } from './vscodeApi.js'
 
@@ -33,7 +33,7 @@ export const FileDiff = ({
   file: FileData
   meta: ChangedFile | undefined
   threads: Thread[]
-  refractor: RefractorLike
+  refractor: RefractorLike | null
   viewed: boolean
   collapsed: boolean
   onToggleCollapsed: () => void
@@ -88,11 +88,11 @@ export const FileDiff = ({
 }
 
 /** useTokens highlights the file through Shiki, falling back to plain text on any failure. */
-function useTokens(file: FileData, refractor: RefractorLike): HunkTokens | undefined {
+function useTokens(file: FileData, refractor: RefractorLike | null): HunkTokens | undefined {
   return useMemo(() => {
     const language = languageForPath(pathOf(file))
     try {
-      if (language === 'plaintext') {
+      if (language === plaintext || !refractor) {
         return tokenize(file.hunks, { enhancers: [markEdits(file.hunks, { type: 'block' })] })
       }
       return tokenize(file.hunks, {

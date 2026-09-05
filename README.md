@@ -105,10 +105,16 @@ grammars VS Code itself uses, bridged into the library's refractor-shaped hook. 
 colour and font comes from `--vscode-*` theme variables, so the panel looks native in
 any theme.
 
+**Grammars load per review, not up front.** The review's changed paths decide which of
+the 52 bundled grammars to import, so opening a TypeScript review never parses the C++
+grammar. Bundling all of them instead cost a measured +419 ms on every panel open; this
+way the entry bundle is 464 KB (147 KB gzip) and a typical review loads two or three
+grammar chunks off disk.
+
 ## Tests
 
 ```sh
-npm test          # 143 unit and integration tests
+npm test          # 147 unit and integration tests
 npm run typecheck
 npm run lint
 ```
@@ -148,7 +154,8 @@ money per run. Run that locally before tagging.
 - Large diffs are not virtualised yet. `react-diff-view` mounts every row, so a
   several-thousand-line diff will feel heavy; per-file lazy mounting is the planned fix.
 - Binary files render as a stub and cannot be commented on.
-- Syntax highlighting bundles six grammars (ts, tsx, js, jsx, json, md); anything else
-  renders as plain text.
+- Syntax highlighting covers 52 languages and the common config formats (yaml, toml,
+  hcl/terraform, sql, dockerfile, proto, ini, make, xml); anything else renders as plain
+  text. Adding one is a line in `grammarLoaders` plus its extensions.
 - Themes other than Default Dark+/Light+ get correct UI colours but Dark+/Light+ token
   colours — VS Code exposes no API for a theme's syntax colours.

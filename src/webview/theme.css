@@ -175,14 +175,6 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 .gdr-pill-stat { display: inline-flex; gap: 7px; color: var(--vscode-descriptionForeground); white-space: nowrap; }
 .gdr-pill button { margin-left: auto; white-space: nowrap; }
 
-.gdr-kind {
-  display: inline-block;
-  font-size: 0.72em;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--vscode-descriptionForeground);
-  margin-bottom: 6px;
-}
 
 
 /* ── files ─────────────────────────────────────────────────────────────── */

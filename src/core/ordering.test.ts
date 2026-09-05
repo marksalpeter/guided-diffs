@@ -13,9 +13,9 @@ describe('orderPaths', () => {
     const ordered = orderPaths(
       ['glue.ts', 'core.ts', 'fallout.ts'],
       guide([
-        { id: 'g1', title: 'Core', summary: '', kind: 'core', files: ['core.ts'] },
-        { id: 'g2', title: 'Fallout', summary: '', kind: 'consequence', files: ['fallout.ts'] },
-        { id: 'g3', title: 'Glue', summary: '', kind: 'auxiliary', files: ['glue.ts'] },
+        { id: 'g1', title: 'Core', summary: '', files: ['core.ts'] },
+        { id: 'g2', title: 'Fallout', summary: '', files: ['fallout.ts'] },
+        { id: 'g3', title: 'Glue', summary: '', files: ['glue.ts'] },
       ]),
     )
     expect(ordered).toEqual(['core.ts', 'fallout.ts', 'glue.ts'])
@@ -24,13 +24,13 @@ describe('orderPaths', () => {
   it('puts paths the guide never mentioned after every guided path', () => {
     const ordered = orderPaths(
       ['stray.ts', 'core.ts'],
-      guide([{ id: 'g1', title: 'Core', summary: '', kind: 'core', files: ['core.ts'] }]),
+      guide([{ id: 'g1', title: 'Core', summary: '', files: ['core.ts'] }]),
     )
     expect(ordered).toEqual(['core.ts', 'stray.ts'])
   })
 
   it('ignores guide paths that are not in the diff', () => {
-    const ordered = orderPaths(['a.ts'], guide([{ id: 'g1', title: 'C', summary: '', kind: 'core', files: ['ghost.ts', 'a.ts'] }]))
+    const ordered = orderPaths(['a.ts'], guide([{ id: 'g1', title: 'C', summary: '', files: ['ghost.ts', 'a.ts'] }]))
     expect(ordered).toEqual(['a.ts'])
   })
 
@@ -39,8 +39,8 @@ describe('orderPaths', () => {
     const ordered = orderPaths(
       paths,
       guide([
-        { id: 'g1', title: 'One', summary: '', kind: 'core', files: ['c.ts'] },
-        { id: 'g2', title: 'Two', summary: '', kind: 'auxiliary', files: ['a.ts'] },
+        { id: 'g1', title: 'One', summary: '', files: ['c.ts'] },
+        { id: 'g2', title: 'Two', summary: '', files: ['a.ts'] },
       ]),
     )
     expect(ordered.slice().sort()).toEqual(paths.slice().sort())

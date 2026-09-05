@@ -107,18 +107,17 @@ describe('full stack against the real claude binary', () => {
     for (const group of state.guide!.groups) {
       expect(group.title.length).toBeGreaterThan(0)
       expect(group.summary.length).toBeGreaterThan(0)
-      expect(['core', 'consequence', 'auxiliary']).toContain(group.kind)
     }
 
     console.log(
       '\nGenerated guide:\n' +
-        state.guide!.groups.map(g => `  [${g.kind}] ${g.title}\n    ${g.summary}\n    ${g.files.join(', ')}`).join('\n'),
+        state.guide!.groups.map(g => `  ${g.title}\n    ${g.summary}\n    ${g.files.join(', ')}`).join('\n'),
     )
   }, 300_000)
 
   it('leads with the core of the change', async () => {
     const { state } = await service.load(key)
-    expect(state.guide!.groups[0]?.kind).toBe('core')
+    expect(state.guide!.groups[0]?.files).toContain('src/auth.ts')
   })
 
   it('hands an agent the human comment through the CLI', async () => {

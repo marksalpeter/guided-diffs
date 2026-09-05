@@ -87,7 +87,7 @@ describe('foldReview', () => {
       t: 'guide.generated',
       baseSha: 'base1',
       headSha: 'head1',
-      groups: [{ id: 'g1', title: 'Core', summary: 's', kind: 'core', files: ['src/a.ts'] }],
+      groups: [{ id: 'g1', title: 'Core', summary: 's', files: ['src/a.ts'] }],
       at: 'a',
     }
     expect(foldReview([created, guide]).guideStale).toBe(false)

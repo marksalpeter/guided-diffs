@@ -10,13 +10,6 @@ import { GuideStatus } from './GuideStatus.js'
 import { activeTheme, loadRefractor, type RefractorLike } from './highlight.js'
 import { loadViewState, post, saveViewState } from './vscodeApi.js'
 
-/** kindLabels name each chapter's role in the reading order. */
-const kindLabels: Record<string, string> = {
-  core: 'core change',
-  consequence: 'consequence',
-  auxiliary: 'supporting',
-}
-
 /** App is the review shell: a toolbar, then chapters of summary-beside-diff. */
 export const App = () => {
   const [payload, setPayload] = useState<ReviewPayload | null>(null)
@@ -137,7 +130,6 @@ const ChapterSummary = ({
     <div className="gdr-chapter-sticky">
       {group && (
         <>
-          <div className="gdr-kind">{kindLabels[group.kind] ?? group.kind}</div>
           <div className="gdr-group-title">{group.title}</div>
           <div className="gdr-chapter-progress">
             <span>

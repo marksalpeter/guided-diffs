@@ -7,9 +7,6 @@ export type ThreadState = 'open' | 'resolved'
 /** AnchorSide is the side of the diff a line anchor refers to. */
 export type AnchorSide = 'old' | 'new'
 
-/** GroupKind orders guide chapters from the core of the change out to its glue code. */
-export type GroupKind = 'core' | 'consequence' | 'auxiliary'
-
 /** FileStatus is how a path changed between base and head. */
 export type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed'
 
@@ -77,7 +74,6 @@ export interface GuideGroup {
   id: string
   title: string
   summary: string
-  kind: GroupKind
   files: string[]
   /** repaired marks a group the validator synthesised rather than the model producing it. */
   repaired?: boolean

@@ -158,7 +158,7 @@ describe('ReviewService', () => {
   it('stores a generated guide covering every changed file', async () => {
     const key = await service.openBranchReview()
     const runner = {
-      run: async () => JSON.stringify({ result: '{"groups":[{"title":"C","summary":"s","kind":"core","files":["a.ts"]}]}' }),
+      run: async () => JSON.stringify({ result: '{"groups":[{"title":"C","summary":"s","files":["a.ts"]}]}' }),
     }
 
     await service.generateGuide(key, runner)

@@ -109,7 +109,7 @@ async function main(): Promise<void> {
 
   process.stderr.write('\nGuide:\n')
   for (const group of state.guide?.groups ?? []) {
-    process.stderr.write(`  [${group.kind}] ${group.title}\n    ${group.summary}\n    ${group.files.join(', ')}\n`)
+    process.stderr.write(`  ${group.title}\n    ${group.summary}\n    ${group.files.join(', ')}\n`)
   }
 
   await writeFile('scripts/payload.json', JSON.stringify({ state, files: changed, diff, guideBusy: false }, null, 2))

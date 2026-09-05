@@ -23,5 +23,6 @@ export type ViewMessage =
   | { type: 'reopen'; threadId: string }
   | { type: 'markReviewed'; path: string; blob: string }
   | { type: 'unmarkReviewed'; path: string }
+  | { type: 'reviewFiles'; files: { path: string; blob: string }[]; reviewed: boolean }
   | { type: 'generateGuide' }
   | { type: 'openFile'; path: string; line: number }

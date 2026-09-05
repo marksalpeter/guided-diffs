@@ -17,6 +17,7 @@ export class ReviewPanel {
   private assets: vscode.Uri
   private disposables: vscode.Disposable[] = []
   private guideBusy = false
+  private guideAttempted = false
 
   private constructor(panel: vscode.WebviewPanel, service: ReviewService, key: string, assets: vscode.Uri) {
     this.panel = panel
@@ -69,7 +70,8 @@ export class ReviewPanel {
     try {
       switch (message.type) {
         case 'ready':
-          return await this.push()
+          await this.push()
+          return await this.autoGenerateGuide()
         case 'startThread':
           await this.service.startThread(this.key, message.path, message.side, message.line, message.body, message.endLine)
           break
@@ -91,6 +93,13 @@ export class ReviewPanel {
         case 'unmarkReviewed':
           await this.service.unmarkReviewed(this.key, message.path)
           break
+        case 'reviewFiles':
+          for (const file of message.files) {
+            await (message.reviewed
+              ? this.service.markReviewed(this.key, file.path, file.blob)
+              : this.service.unmarkReviewed(this.key, file.path))
+          }
+          break
         case 'generateGuide':
           return await this.generateGuide()
         case 'openFile':
@@ -102,11 +111,25 @@ export class ReviewPanel {
     }
   }
 
+  /** autoGenerateGuide starts the first guide on its own, so the reader never has to ask for it. */
+  private async autoGenerateGuide(): Promise<void> {
+    if (this.guideAttempted || this.guideBusy) {
+      return
+    }
+    const { state } = await this.service.load(this.key)
+    if (state.guide || state.guideError) {
+      return
+    }
+    this.guideAttempted = true
+    await this.generateGuide()
+  }
+
   /** generateGuide runs inference without blocking the diff, which is already on screen. */
   private async generateGuide(): Promise<void> {
     if (this.guideBusy) {
       return
     }
+    this.guideAttempted = true
     this.guideBusy = true
     await this.push()
 

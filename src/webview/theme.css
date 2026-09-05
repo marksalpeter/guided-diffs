@@ -71,8 +71,8 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 .gdr-refs code { font-family: var(--vscode-editor-font-family); }
 .gdr-spacer { flex: 1; }
 
-.gdr-modes { display: flex; border: 1px solid var(--vscode-panel-border); border-radius: var(--gdr-radius); overflow: hidden; }
-.gdr-modes button { background: transparent; color: var(--vscode-foreground); border-radius: 0; padding: 3px 12px; }
+.gdr-modes { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--vscode-panel-border); border-radius: 999px; }
+.gdr-modes button { background: transparent; color: var(--vscode-foreground); border-radius: 999px; padding: 3px 14px; }
 .gdr-modes button[aria-pressed='true'] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
 
 .gdr-body { display: flex; flex: 1; min-height: 0; }
@@ -93,13 +93,26 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 .gdr-chapter-files { min-width: 0; }
 .gdr-chapter-sticky { position: sticky; top: 14px; padding: 18px 0 0; }
 
-.gdr-group-title { font-weight: 600; margin-bottom: 4px; font-size: 1.02em; }
-.gdr-group-summary { color: var(--vscode-descriptionForeground); line-height: 1.5; }
+.gdr-group-title { font-weight: 600; margin-bottom: 6px; font-size: 1.6em; line-height: 1.25; }
+.gdr-group-summary { color: var(--vscode-descriptionForeground); line-height: 1.55; font-size: 1.12em; }
 .gdr-chapter-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--vscode-descriptionForeground);
   font-variant-numeric: tabular-nums;
-  font-size: 0.88em;
-  margin-bottom: 8px;
+  font-size: 0.95em;
+  margin-bottom: 10px;
+}
+
+/* narrow panels have no room for two columns: the chapter guide sits above its
+   diffs and the file list goes away, since every file is already on screen below */
+@media (max-width: 900px) {
+  .gdr-chapter { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .gdr-chapter-summary { height: auto; }
+  .gdr-chapter-sticky { position: static; padding: 22px 0 12px; }
+  .gdr-chapter-summary .gdr-filelist { display: none; }
+  .gdr-pill { width: auto; right: 18px; }
 }
 
 /* ── file list ─────────────────────────────────────────────────────────── */

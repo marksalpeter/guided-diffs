@@ -130,7 +130,9 @@ const ChapterSummary = ({
   files: ReviewPayload['files']
   reviewedBlobs: Record<string, string>
   onJumpToFile: (path: string) => void
-}) => (
+}) => {
+  const allReviewed = paths.length > 0 && reviewedCount(paths, files, reviewedBlobs) === paths.length
+  return (
   <div className="gdr-chapter-summary">
     <div className="gdr-chapter-sticky">
       {group && (
@@ -138,7 +140,23 @@ const ChapterSummary = ({
           <div className="gdr-kind">{kindLabels[group.kind] ?? group.kind}</div>
           <div className="gdr-group-title">{group.title}</div>
           <div className="gdr-chapter-progress">
-            {String(reviewedCount(paths, files, reviewedBlobs)).padStart(2, '0')} / {String(paths.length).padStart(2, '0')} reviewed
+            <span>
+              {String(reviewedCount(paths, files, reviewedBlobs)).padStart(2, '0')} / {String(paths.length).padStart(2, '0')}
+            </span>
+            <label className="gdr-reviewed">
+              <input
+                type="checkbox"
+                checked={allReviewed}
+                onChange={() =>
+                  post({
+                    type: 'reviewFiles',
+                    files: paths.map(path => ({ path, blob: files.find(file => file.path === path)?.newBlob ?? '' })),
+                    reviewed: !allReviewed,
+                  })
+                }
+              />
+              Reviewed
+            </label>
           </div>
           <div className="gdr-group-summary">{group.summary}</div>
         </>
@@ -146,7 +164,8 @@ const ChapterSummary = ({
       <FileList paths={paths} files={files} reviewedBlobs={reviewedBlobs} onSelect={onJumpToFile} />
     </div>
   </div>
-)
+  )
+}
 
 /** OutdatedThreads lists threads whose code has moved on, so they are never silently lost. */
 const OutdatedThreads = ({ threads }: { threads: Thread[] }) => (

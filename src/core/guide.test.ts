@@ -156,6 +156,28 @@ describe('GuideGenerator', () => {
     await expect(new GuideGenerator(runner).generate([file('a.ts')], 'diff')).rejects.toThrow(/could not be parsed/i)
   })
 
+  it('fails rather than returning a guide that classified nothing', async () => {
+    const runner = { run: async () => JSON.stringify({ result: '{"groups":[]}' }) }
+    await expect(new GuideGenerator(runner).generate([file('a.ts')], 'diff')).rejects.toThrow(/assigned no files/i)
+  })
+
+  it('fails when every path the model returned was invented', async () => {
+    const runner = {
+      run: async () =>
+        JSON.stringify({ result: '{"groups":[{"title":"C","summary":"s","kind":"core","files":["ghost.ts"]}]}' }),
+    }
+    await expect(new GuideGenerator(runner).generate([file('a.ts')], 'diff')).rejects.toThrow(/assigned no files/i)
+  })
+
+  it('accepts a partial grouping, sweeping only the remainder', async () => {
+    const runner = {
+      run: async () =>
+        JSON.stringify({ result: '{"groups":[{"title":"C","summary":"s","kind":"core","files":["a.ts"]}]}' }),
+    }
+    const groups = await new GuideGenerator(runner).generate([file('a.ts'), file('b.ts')], 'diff')
+    expect(groups.map(g => g.title)).toEqual(['C', 'Other changes'])
+  })
+
   it('propagates a runner failure unchanged', async () => {
     const runner = {
       run: async () => {
@@ -171,7 +193,7 @@ describe('GuideGenerator', () => {
     const runner = {
       run: async (_prompt: string, stdin: string) => {
         received = stdin
-        return JSON.stringify({ result: '{"groups":[]}' })
+        return JSON.stringify({ result: '{"groups":[{"title":"C","summary":"s","kind":"core","files":["a.ts"]}]}' })
       },
     }
     await new GuideGenerator(runner).generate([file('a.ts')], diff)

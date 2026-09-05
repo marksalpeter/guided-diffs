@@ -166,4 +166,66 @@ describe('ReviewService', () => {
     expect(state.guide?.groups[0]?.files).toEqual(['a.ts'])
     expect(state.guideStale).toBe(false)
   })
+
+  it('reopens a resolved thread when anyone comments again', async () => {
+    const key = await service.openBranchReview()
+    const id = await service.startThread(key, 'a.ts', 'new', 4, 'fix this')
+    await service.resolveThread(key, id)
+    expect((await service.load(key)).state.threads[0]?.state).toBe('resolved')
+
+    await service.reply(key, id, 'still broken', 'human')
+    const thread = (await service.load(key)).state.threads[0]
+    expect(thread?.state).toBe('open')
+    expect(thread?.comments.map(c => c.body)).toEqual(['fix this', 'still broken'])
+  })
+
+  it('reopens for an agent reply too, so a resolved ask cannot be answered invisibly', async () => {
+    const key = await service.openBranchReview()
+    const id = await service.startThread(key, 'a.ts', 'new', 4, 'fix this')
+    await service.resolveThread(key, id)
+
+    await service.reply(key, id, 'fixed in abc123', 'agent')
+    expect((await service.load(key)).state.threads[0]?.state).toBe('open')
+  })
+
+  it('does not stack reopen events when replying to an already open thread', async () => {
+    const key = await service.openBranchReview()
+    const id = await service.startThread(key, 'a.ts', 'new', 4, 'fix this')
+    await service.reply(key, id, 'more', 'human')
+
+    const events = await service.reviews.read(key)
+    expect(events.filter(e => e.t === 'thread.reopened')).toHaveLength(0)
+  })
+
+  it('ticks a file off against the blob on screen', async () => {
+    const key = await service.openBranchReview()
+    const { files } = await service.load(key)
+    const file = files[0]!
+
+    await service.markViewed(key, file.path, file.newBlob!)
+    expect((await service.load(key)).state.viewedBlobs[file.path]).toBe(file.newBlob)
+  })
+
+  it('leaves a stale tick behind when the file changes, so the UI can un-tick it', async () => {
+    const key = await service.openBranchReview()
+    const before = (await service.load(key)).files[0]!
+    await service.markViewed(key, before.path, before.newBlob!)
+
+    await writeLines(['one', 'two', 'three', 'target', 'five', 'six'])
+    await commit('more work')
+    await service.openBranchReview()
+
+    const { state, files } = await service.load(key)
+    expect(state.viewedBlobs['a.ts']).toBe(before.newBlob)
+    expect(files[0]?.newBlob).not.toBe(before.newBlob)
+  })
+
+  it('clears a tick outright when unmarked', async () => {
+    const key = await service.openBranchReview()
+    const file = (await service.load(key)).files[0]!
+    await service.markViewed(key, file.path, file.newBlob!)
+    await service.unmarkViewed(key, file.path)
+
+    expect((await service.load(key)).state.viewedBlobs).toEqual({})
+  })
 })

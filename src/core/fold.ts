@@ -6,7 +6,14 @@ const emptyRefs = { baseSha: '', headSha: '', baseLabel: '', headLabel: '' }
 
 /** foldReview derives the renderable state of a review from its append-only event log. */
 export function foldReview(events: readonly ReviewEvent[]): ReviewState {
-  const state: ReviewState = { key: '', kind: 'branch', refs: { ...emptyRefs }, threads: [], guideStale: false }
+  const state: ReviewState = {
+    key: '',
+    kind: 'branch',
+    refs: { ...emptyRefs },
+    threads: [],
+    guideStale: false,
+    viewedBlobs: {},
+  }
   const threads = new Map<string, Thread>()
 
   for (const event of events) {
@@ -80,6 +87,12 @@ function applyEvent(state: ReviewState, threads: Map<string, Thread>, event: Rev
       return
     case 'guide.failed':
       state.guideError = event.message
+      return
+    case 'file.viewed':
+      state.viewedBlobs[event.path] = event.blob
+      return
+    case 'file.unviewed':
+      delete state.viewedBlobs[event.path]
       return
   }
 }

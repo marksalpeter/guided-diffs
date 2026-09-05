@@ -121,8 +121,12 @@ export class ReviewService {
     return this.appendThread(key, { kind: 'group', groupId, files: group?.files ?? [] }, body)
   }
 
-  /** reply appends a message to an existing thread. */
+  /** reply appends a message, reopening the thread when it had already been resolved. */
   async reply(key: string, threadId: string, body: string, author: 'human' | 'agent'): Promise<void> {
+    const state = await this.store.load(key)
+    if (state.threads.find(thread => thread.id === threadId)?.state === 'resolved') {
+      await this.store.append(key, { t: 'thread.reopened', threadId, at: now() })
+    }
     await this.store.append(key, {
       t: 'comment.added',
       id: `c_${randomUUID().slice(0, 8)}`,
@@ -131,6 +135,16 @@ export class ReviewService {
       body,
       at: now(),
     })
+  }
+
+  /** markViewed ticks a file off against the blob currently shown, so a later edit clears it. */
+  markViewed(key: string, path: string, blob: string): Promise<void> {
+    return this.store.append(key, { t: 'file.viewed', path, blob, at: now() })
+  }
+
+  /** unmarkViewed clears a file's reviewed tick. */
+  unmarkViewed(key: string, path: string): Promise<void> {
+    return this.store.append(key, { t: 'file.unviewed', path, at: now() })
   }
 
   /** resolveThread closes a thread, which hides it from the agent. */

@@ -85,6 +85,12 @@ export class ReviewPanel {
         case 'reopen':
           await this.service.reopenThread(this.key, message.threadId)
           break
+        case 'markViewed':
+          await this.service.markViewed(this.key, message.path, message.blob)
+          break
+        case 'unmarkViewed':
+          await this.service.unmarkViewed(this.key, message.path)
+          break
         case 'generateGuide':
           return await this.generateGuide()
         case 'openFile':
@@ -109,7 +115,7 @@ export class ReviewPanel {
     try {
       await this.service.generateGuide(this.key, runner)
     } catch {
-      // the failure is already recorded in the log, and the rail renders it with a Retry button
+      // the failure is already recorded in the log, and the toolbar renders it with a Retry button
     } finally {
       this.guideBusy = false
       await this.push()

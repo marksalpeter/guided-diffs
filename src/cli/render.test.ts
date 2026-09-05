@@ -11,6 +11,7 @@ const review: LoadedReview = {
     refs: { baseSha: 'abcdef1234', headSha: '1234abcdef', baseLabel: 'main', headLabel: 'feature' },
     threads: [],
     guideStale: false,
+    viewedBlobs: {},
   },
   files: [],
 }

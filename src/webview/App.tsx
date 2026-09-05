@@ -2,14 +2,21 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { parseDiff, type FileData } from 'react-diff-view'
 import { orderPaths } from '../core/ordering.js'
 import type { HostMessage, ReviewPayload } from '../core/protocol.js'
-import type { Thread } from '../core/types.js'
+import type { GuideGroup, Thread } from '../core/types.js'
 import { CommentThread } from './CommentThread.js'
 import { FileDiff, fileAnchorId, pathOf } from './FileDiff.js'
-import { GuideRail } from './GuideRail.js'
+import { GuideStatus } from './GuideStatus.js'
 import { activeTheme, createRefractorShim } from './highlight.js'
 import { loadViewState, post, saveViewState } from './vscodeApi.js'
 
-/** App is the review shell: a mode toolbar, the guide rail, and the diff pane. */
+/** kindLabels name each chapter's role in the reading order. */
+const kindLabels: Record<string, string> = {
+  core: 'core change',
+  consequence: 'consequence',
+  auxiliary: 'supporting',
+}
+
+/** App is the review shell: a toolbar, then chapters of summary-beside-diff. */
 export const App = () => {
   const [payload, setPayload] = useState<ReviewPayload | null>(null)
   const [fatal, setFatal] = useState('')
@@ -21,15 +28,15 @@ export const App = () => {
 
   const refractor = useMemo(() => createRefractorShim(activeTheme()), [])
   const files = useMemo(() => (payload ? parseDiff(payload.diff) : []), [payload])
-  const ordered = useOrderedFiles(files, payload, mode)
+  const chapters = useChapters(files, payload, mode)
   const scroller = useRef<HTMLDivElement>(null)
-  useScrollAnchor(scroller, ordered)
+  useScrollAnchor(scroller, chapters)
 
   const jumpToFile = useCallback((path: string) => {
     document.getElementById(fileAnchorId(path))?.scrollIntoView({ block: 'start' })
   }, [])
 
-  const toggle = useCallback((path: string) => {
+  const toggleCollapsed = useCallback((path: string) => {
     setCollapsed(previous => {
       const next = new Set(previous)
       next.has(path) ? next.delete(path) : next.add(path)
@@ -53,6 +60,7 @@ export const App = () => {
         <span className="gdr-refs">
           <code>{state.refs.baseLabel}</code> → <code>{state.refs.headLabel}</code>
         </span>
+        <GuideStatus state={state} busy={payload.guideBusy} />
         <span className="gdr-spacer" />
         <div className="gdr-modes">
           <button aria-pressed={mode === 'guided'} onClick={() => setMode('guided')}>
@@ -64,30 +72,59 @@ export const App = () => {
         </div>
       </div>
 
-      <div className="gdr-body">
-        {mode === 'guided' && <GuideRail state={state} busy={payload.guideBusy} onJumpToFile={jumpToFile} />}
-        <div className="gdr-main" ref={scroller}>
-          {ordered.length === 0 && <div className="gdr-empty">No changes between these commits.</div>}
-          {ordered.map(file => {
-            const path = pathOf(file)
-            return (
-              <FileDiff
-                key={path}
-                file={file}
-                meta={payload.files.find(f => f.path === path)}
-                threads={threadsForPath(state.threads, path)}
-                refractor={refractor}
-                collapsed={collapsed.has(path)}
-                onToggle={() => toggle(path)}
-              />
-            )
-          })}
-          {outdated.length > 0 && <OutdatedThreads threads={outdated} />}
-        </div>
+      <div className="gdr-main" ref={scroller}>
+        {chapters.length === 0 && <div className="gdr-empty">No changes between these commits.</div>}
+        {chapters.map(chapter => (
+          <section className={`gdr-chapter${chapter.group ? '' : ' bare'}`} key={chapter.id}>
+            {chapter.group && <ChapterSummary group={chapter.group} onJumpToFile={jumpToFile} />}
+            <div className="gdr-chapter-files">
+              {chapter.files.map(file => {
+                const path = pathOf(file)
+                const meta = payload.files.find(f => f.path === path)
+                return (
+                  <FileDiff
+                    key={path}
+                    file={file}
+                    meta={meta}
+                    threads={threadsForPath(state.threads, path)}
+                    refractor={refractor}
+                    viewed={isViewed(state.viewedBlobs[path], meta?.newBlob)}
+                    collapsed={collapsed.has(path)}
+                    onToggleCollapsed={() => toggleCollapsed(path)}
+                    onToggleViewed={() =>
+                      isViewed(state.viewedBlobs[path], meta?.newBlob)
+                        ? post({ type: 'unmarkViewed', path })
+                        : post({ type: 'markViewed', path, blob: meta?.newBlob ?? '' })
+                    }
+                  />
+                )
+              })}
+            </div>
+          </section>
+        ))}
+        {outdated.length > 0 && <OutdatedThreads threads={outdated} />}
       </div>
     </div>
   )
 }
+
+/** ChapterSummary is the guide text that stays pinned while its files scroll past. */
+const ChapterSummary = ({ group, onJumpToFile }: { group: GuideGroup; onJumpToFile: (path: string) => void }) => (
+  <div className="gdr-chapter-summary">
+    <div className="gdr-chapter-sticky">
+      <div className="gdr-kind">{kindLabels[group.kind] ?? group.kind}</div>
+      <div className="gdr-group-title">{group.title}</div>
+      <div className="gdr-group-summary">{group.summary}</div>
+      <div className="gdr-group-files">
+        {group.files.map(path => (
+          <span key={path} className="gdr-group-file" title={path} onClick={() => onJumpToFile(path)}>
+            {path}
+          </span>
+        ))}
+      </div>
+    </div>
+  </div>
+)
 
 /** OutdatedThreads lists threads whose code has moved on, so they are never silently lost. */
 const OutdatedThreads = ({ threads }: { threads: Thread[] }) => (
@@ -115,20 +152,40 @@ function useHostMessages(onReview: (payload: ReviewPayload) => void, onError: (m
   }, [onReview, onError])
 }
 
-/** useOrderedFiles applies the guide's reading order in guided mode, and git order otherwise. */
-function useOrderedFiles(files: FileData[], payload: ReviewPayload | null, mode: Mode): FileData[] {
+/** useChapters groups the diff under its guide chapters, or into one bare chapter without a guide. */
+function useChapters(files: FileData[], payload: ReviewPayload | null, mode: Mode): Chapter[] {
   return useMemo(() => {
     const guide = mode === 'guided' ? payload?.state.guide : undefined
-    const order = orderPaths(files.map(pathOf), guide)
-    return order
-      .map(path => files.find(file => pathOf(file) === path))
-      .filter((file): file is FileData => file !== undefined)
+    const byPath = new Map(files.map(file => [pathOf(file), file]))
+    if (!guide) {
+      return files.length === 0 ? [] : [{ id: 'all', files }]
+    }
+
+    const chapters: Chapter[] = []
+    for (const group of guide.groups) {
+      const grouped = group.files.map(path => byPath.get(path)).filter((f): f is FileData => f !== undefined)
+      if (grouped.length > 0) {
+        chapters.push({ id: group.id, group, files: grouped })
+      }
+    }
+
+    const claimed = new Set(guide.groups.flatMap(group => group.files))
+    const rest = orderPaths(
+      files.map(pathOf).filter(path => !claimed.has(path)),
+      undefined,
+    )
+      .map(path => byPath.get(path))
+      .filter((f): f is FileData => f !== undefined)
+    if (rest.length > 0) {
+      chapters.push({ id: 'ungrouped', files: rest })
+    }
+    return chapters
   }, [files, payload, mode])
 }
 
 /** useScrollAnchor keeps the file under the reader pinned when the guide reorders the pane. */
-function useScrollAnchor(scroller: React.RefObject<HTMLDivElement | null>, ordered: FileData[]): void {
-  const signature = ordered.map(pathOf).join('|')
+function useScrollAnchor(scroller: React.RefObject<HTMLDivElement | null>, chapters: Chapter[]): void {
+  const signature = chapters.flatMap(chapter => chapter.files.map(pathOf)).join('|')
   const previous = useRef(signature)
   const anchor = useRef<{ id: string; offset: number } | null>(null)
 
@@ -156,7 +213,7 @@ function useScrollAnchor(scroller: React.RefObject<HTMLDivElement | null>, order
 /** topVisibleFile records which file section is at the top of the viewport, and its offset. */
 function topVisibleFile(scroller: HTMLDivElement): { id: string; offset: number } | null {
   for (const section of Array.from(scroller.querySelectorAll<HTMLElement>('.gdr-file'))) {
-    const offset = section.offsetTop - scroller.scrollTop
+    const offset = section.getBoundingClientRect().top - scroller.getBoundingClientRect().top
     if (offset + section.offsetHeight > 0) {
       return { id: section.id, offset }
     }
@@ -164,10 +221,22 @@ function topVisibleFile(scroller: HTMLDivElement): { id: string; offset: number 
   return null
 }
 
+/** isViewed reports whether the tick was made against the blob currently on screen. */
+function isViewed(markedBlob: string | undefined, currentBlob: string | null | undefined): boolean {
+  return markedBlob !== undefined && markedBlob === (currentBlob ?? '')
+}
+
 /** threadsForPath selects the threads anchored to one file. */
 function threadsForPath(threads: readonly Thread[], path: string): Thread[] {
   return threads.filter(thread => thread.anchor.kind === 'line' && thread.anchor.path === path)
 }
 
-/** Mode is which of the two panes the reviewer has selected. */
+/** Chapter is one guide section with the files it covers, or the ungrouped remainder. */
+interface Chapter {
+  id: string
+  group?: GuideGroup
+  files: FileData[]
+}
+
+/** Mode is which of the two views the reviewer has selected. */
 type Mode = 'guided' | 'diff'

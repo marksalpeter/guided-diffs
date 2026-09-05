@@ -92,6 +92,15 @@ async function main(): Promise<void> {
   const second = await service.startThread(key, 'src/server.ts', 'new', 9, 'expiry check happens after verify() — fine, but should this be inside verify so every caller gets it?')
   await service.reply(key, second, 'Moved the expiry check into verify() in a follow-up commit — every caller now gets it for free.', 'agent')
 
+  const settled = await service.startThread(key, 'src/routes.ts', 'new', 5, 'routes stores handle without the secret the new signature needs.')
+  await service.reply(key, settled, 'Fixed — routes now closes over the secret from config.', 'agent')
+  await service.resolveThread(key, settled)
+
+  const readme = (await service.load(key)).files.find(f => f.path === 'README.md')
+  if (readme?.newBlob) {
+    await service.markViewed(key, 'README.md', readme.newBlob)
+  }
+
   process.stderr.write('generating guide with claude…\n')
   await service.generateGuide(key, new ClaudeCli('claude', 'claude-opus-5'))
 

@@ -91,11 +91,14 @@ for (const theme of ['dark', 'light']) {
   if (theme === 'dark') {
     const stats = await page.evaluate(() => ({
       files: document.querySelectorAll('.gdr-file').length,
-      groups: document.querySelectorAll('.gdr-group').length,
+      groups: document.querySelectorAll('.gdr-chapter').length,
       threads: document.querySelectorAll('.gdr-thread').length,
       styledTokens: document.querySelectorAll('.diff-code span[style*="color"]').length,
       insertRows: document.querySelectorAll('.diff-code-insert').length,
       firstGroup: document.querySelector('.gdr-group-title')?.textContent,
+      viewedFiles: document.querySelectorAll('.gdr-file.viewed').length,
+      resolvedThreads: document.querySelectorAll('.gdr-thread.resolved').length,
+      composers: document.querySelectorAll('.gdr-composer').length,
       firstFile: document.querySelector('.gdr-file-header strong')?.textContent,
     }))
     await writeFile('scripts/render-stats.json', JSON.stringify(stats, null, 2))

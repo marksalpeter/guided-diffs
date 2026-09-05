@@ -109,4 +109,6 @@ export interface ReviewState {
   guide?: Guide
   guideStale: boolean
   guideError?: string
+  /** viewedBlobs maps a path to the blob the reviewer last ticked off. */
+  viewedBlobs: Record<string, string>
 }

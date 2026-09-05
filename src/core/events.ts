@@ -13,6 +13,8 @@ export type ReviewEvent =
   | ThreadReopened
   | GuideGenerated
   | GuideFailed
+  | FileViewed
+  | FileUnviewed
 
 /** parseEvent reads one log line, returning null for anything malformed. */
 export function parseEvent(line: string): ReviewEvent | null {
@@ -52,6 +54,8 @@ const knownTypes = new Set([
   'thread.reopened',
   'guide.generated',
   'guide.failed',
+  'file.viewed',
+  'file.unviewed',
 ])
 
 /** ReviewCreated opens a review and pins its base. */
@@ -114,6 +118,21 @@ export interface GuideGenerated {
   baseSha: string
   headSha: string
   groups: GuideGroup[]
+  at: string
+}
+
+/** FileViewed marks one blob of one file as reviewed, so a later edit un-marks it. */
+export interface FileViewed {
+  t: 'file.viewed'
+  path: string
+  blob: string
+  at: string
+}
+
+/** FileUnviewed clears the reviewed mark on a file. */
+export interface FileUnviewed {
+  t: 'file.unviewed'
+  path: string
   at: string
 }
 

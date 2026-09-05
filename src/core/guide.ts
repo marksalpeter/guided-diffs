@@ -31,7 +31,11 @@ export class GuideGenerator {
     if (groups === null) {
       throw new Error('the guided review response could not be parsed as JSON')
     }
-    return repairGroups(groups, files.map(f => f.path))
+    const repaired = repairGroups(groups, files.map(f => f.path))
+    if (repaired.every(group => group.repaired)) {
+      throw new Error('the guided review assigned no files to any chapter')
+    }
+    return repaired
   }
 }
 

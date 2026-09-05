@@ -3,7 +3,8 @@
 :root {
   --gdr-gap: 12px;
   --gdr-radius: 4px;
-  --gdr-rail-width: 300px;
+  --gdr-card-radius: 10px;
+  --gdr-summary-width: 300px;
 }
 
 body {
@@ -75,22 +76,27 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 .gdr-modes button[aria-pressed='true'] { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
 
 .gdr-body { display: flex; flex: 1; min-height: 0; }
-.gdr-main { flex: 1; min-width: 0; overflow: auto; padding: 0 14px 40vh; }
+.gdr-main { flex: 1; min-width: 0; overflow: auto; padding: 0 18px 40vh; }
 
-/* ── guide rail ────────────────────────────────────────────────────────── */
+/* ── chapters ─────────────────────────────────────────────────────────── */
 
-.gdr-rail {
-  width: var(--gdr-rail-width);
-  flex: 0 0 var(--gdr-rail-width);
-  border-right: 1px solid var(--vscode-panel-border);
-  overflow: auto;
-  padding: 14px;
+/* summary and diff sit in one grid row, so the summary can stick for exactly the
+   span of its own files and release at the next chapter. No divider between them. */
+.gdr-chapter {
+  display: grid;
+  grid-template-columns: var(--gdr-summary-width) minmax(0, 1fr);
+  gap: 28px;
+  /* no align-items: start — the summary cell must stretch to the row height or sticky has no travel */
 }
 
-.gdr-group { margin-bottom: 18px; cursor: pointer; }
-.gdr-group-title { font-weight: 600; margin-bottom: 3px; }
-.gdr-group-summary { color: var(--vscode-descriptionForeground); line-height: 1.45; }
-.gdr-group-files { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+.gdr-chapter.bare { grid-template-columns: minmax(0, 1fr); }
+.gdr-chapter-summary { height: 100%; }
+.gdr-chapter-files { min-width: 0; }
+.gdr-chapter-sticky { position: sticky; top: 14px; padding: 18px 0 0; }
+
+.gdr-group-title { font-weight: 600; margin-bottom: 4px; font-size: 1.02em; }
+.gdr-group-summary { color: var(--vscode-descriptionForeground); line-height: 1.5; }
+.gdr-group-files { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
 
 .gdr-group-file {
   font-family: var(--vscode-editor-font-family);
@@ -104,22 +110,27 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 
 .gdr-kind {
   display: inline-block;
-  font-size: 0.75em;
+  font-size: 0.72em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--vscode-descriptionForeground);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 10px;
-  padding: 0 6px;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
-.gdr-rail-empty { color: var(--vscode-descriptionForeground); line-height: 1.5; }
-.gdr-rail-error { color: var(--vscode-errorForeground); margin-bottom: 10px; line-height: 1.5; }
+.gdr-guide-status { display: inline-flex; align-items: center; gap: 8px; color: var(--vscode-descriptionForeground); font-size: 0.92em; }
+.gdr-guide-status.error { color: var(--vscode-errorForeground); }
 
 /* ── files ─────────────────────────────────────────────────────────────── */
 
-.gdr-file { margin: 14px 0; border: 1px solid var(--vscode-panel-border); border-radius: var(--gdr-radius); overflow: hidden; }
+.gdr-file {
+  margin: 18px 0;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--gdr-card-radius);
+  overflow: hidden;
+}
+
+.gdr-file.viewed { opacity: 0.6; }
+.gdr-file.viewed:hover { opacity: 1; }
 
 .gdr-file-header {
   position: sticky;
@@ -131,10 +142,31 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
   padding: 6px 10px;
   background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editor-background));
   border-bottom: 1px solid var(--vscode-panel-border);
-  cursor: pointer;
   font-family: var(--vscode-editor-font-family);
   font-size: 0.92em;
 }
+
+.gdr-caret {
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.gdr-viewed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-font-family);
+  font-size: 0.95em;
+}
+
+.gdr-viewed input { accent-color: var(--vscode-button-background); cursor: pointer; margin: 0; }
 
 .gdr-stat-add { color: var(--vscode-gitDecoration-addedResourceForeground, #4a8); }
 .gdr-stat-del { color: var(--vscode-gitDecoration-deletedResourceForeground, #c55); }
@@ -178,22 +210,61 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
 .gdr-widget { padding: 8px 10px 10px 52px; border-top: 1px solid var(--vscode-panel-border); border-bottom: 1px solid var(--vscode-panel-border); }
 
 .gdr-thread {
+  position: relative;
   background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
   border: 1px solid var(--vscode-panel-border);
-  border-radius: var(--gdr-radius);
-  padding: 8px 10px;
+  border-radius: var(--gdr-card-radius);
+  padding: 10px 40px 10px 12px;
   margin-bottom: 8px;
   max-width: 760px;
 }
 
-.gdr-thread.resolved { opacity: 0.55; }
-.gdr-comment { margin-bottom: 7px; line-height: 1.5; white-space: pre-wrap; }
-.gdr-comment:last-of-type { margin-bottom: 0; }
-.gdr-author { font-weight: 600; margin-right: 6px; }
-.gdr-author.agent { color: var(--vscode-textLink-foreground); }
-.gdr-thread-actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+.gdr-thread.resolved { opacity: 0.6; }
+.gdr-thread.resolved:hover { opacity: 1; }
+
+.gdr-tick {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid var(--vscode-panel-border);
+  cursor: pointer;
+}
+
+.gdr-tick { color: var(--vscode-panel-border); }
+.gdr-tick:hover { color: var(--vscode-descriptionForeground); border-color: var(--vscode-descriptionForeground); }
+.gdr-tick.checked { background: var(--vscode-button-background); border-color: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+.gdr-tick.checked:hover { color: var(--vscode-button-foreground); }
+
+.gdr-thread-collapsed {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gdr-comment { margin-bottom: 8px; line-height: 1.5; white-space: pre-wrap; }
+.gdr-author { font-weight: 600; margin-right: 6px; color: var(--vscode-textLink-foreground); }
+
+.gdr-composer { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
+.gdr-composer textarea { flex: 1; min-height: 28px; }
+.gdr-composer button:disabled { opacity: 0.45; cursor: default; }
 
 .gdr-badge {
+  display: inline-block;
   font-size: 0.78em;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -201,6 +272,7 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
   border: 1px solid currentColor;
   border-radius: 10px;
   padding: 0 6px;
+  margin-bottom: 6px;
 }
 
 .gdr-quote {
@@ -208,7 +280,7 @@ textarea:focus { outline: 1px solid var(--vscode-focusBorder); }
   color: var(--vscode-descriptionForeground);
   border-left: 2px solid var(--vscode-panel-border);
   padding-left: 8px;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   white-space: pre-wrap;
 }
 

@@ -142,3 +142,32 @@ describe('selectors', () => {
     expect(unansweredThreads(followUp).map(t => t.id)).toEqual(['t1'])
   })
 })
+
+describe('viewed files', () => {
+  it('records the blob a file was ticked off against', () => {
+    const state = foldReview([created, { t: 'file.viewed', path: 'a.ts', blob: 'blob1', at: 'a' }])
+    expect(state.viewedBlobs).toEqual({ 'a.ts': 'blob1' })
+  })
+
+  it('clears a tick when the file is unmarked', () => {
+    const state = foldReview([
+      created,
+      { t: 'file.viewed', path: 'a.ts', blob: 'blob1', at: 'a' },
+      { t: 'file.unviewed', path: 'a.ts', at: 'b' },
+    ])
+    expect(state.viewedBlobs).toEqual({})
+  })
+
+  it('keeps the newest blob when a file is re-ticked', () => {
+    const state = foldReview([
+      created,
+      { t: 'file.viewed', path: 'a.ts', blob: 'blob1', at: 'a' },
+      { t: 'file.viewed', path: 'a.ts', blob: 'blob2', at: 'b' },
+    ])
+    expect(state.viewedBlobs['a.ts']).toBe('blob2')
+  })
+
+  it('starts with nothing ticked off', () => {
+    expect(foldReview([created]).viewedBlobs).toEqual({})
+  })
+})

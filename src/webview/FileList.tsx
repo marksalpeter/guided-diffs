@@ -1,0 +1,69 @@
+import type { ChangedFile } from '../core/types.js'
+
+/** FileList is the stacked list of changed files in the left column. */
+export const FileList = ({
+  paths,
+  files,
+  reviewedBlobs,
+  onSelect,
+}: {
+  paths: readonly string[]
+  files: readonly ChangedFile[]
+  reviewedBlobs: Record<string, string>
+  onSelect: (path: string) => void
+}) => (
+  <div className="gdr-filelist">
+    {paths.map(path => {
+      const meta = files.find(file => file.path === path)
+      return (
+        <button
+          key={path}
+          className={`gdr-filecard${isReviewed(reviewedBlobs[path], meta?.newBlob) ? ' reviewed' : ''}`}
+          title={path}
+          onClick={() => onSelect(path)}
+        >
+          <FileGlyph />
+          <span className="gdr-filecard-name">{basename(path)}</span>
+          <span className="gdr-filecard-dir">{dirname(path)}</span>
+          <span className="gdr-spacer" />
+          {meta && meta.additions > 0 && <span className="gdr-stat-add">+{meta.additions}</span>}
+          {meta && meta.deletions > 0 && <span className="gdr-stat-del">−{meta.deletions}</span>}
+        </button>
+      )
+    })}
+  </div>
+)
+
+/** reviewedCount reports how many of these paths are ticked off against their current blob. */
+export function reviewedCount(paths: readonly string[], files: readonly ChangedFile[], reviewedBlobs: Record<string, string>): number {
+  return paths.filter(path => isReviewed(reviewedBlobs[path], files.find(file => file.path === path)?.newBlob)).length
+}
+
+/** isReviewed reports whether the tick was made against the blob currently on screen. */
+export function isReviewed(markedBlob: string | undefined, currentBlob: string | null | undefined): boolean {
+  return markedBlob !== undefined && markedBlob === (currentBlob ?? '')
+}
+
+/** FileGlyph is the document icon each card leads with. */
+const FileGlyph = () => (
+  <svg className="gdr-filecard-icon" width="12" height="14" viewBox="0 0 12 14" aria-hidden="true">
+    <path
+      d="M1 1h6l4 4v8H1z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+    />
+    <path d="M7 1v4h4" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+  </svg>
+)
+
+/** basename is the file's own name. */
+function basename(path: string): string {
+  return path.split('/').pop() ?? path
+}
+
+/** dirname is the directory a file sits in, empty at the repository root. */
+function dirname(path: string): string {
+  return path.split('/').slice(0, -1).join('/')
+}

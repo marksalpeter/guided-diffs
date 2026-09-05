@@ -21,7 +21,7 @@ export type ViewMessage =
   | { type: 'reply'; threadId: string; body: string }
   | { type: 'resolve'; threadId: string }
   | { type: 'reopen'; threadId: string }
-  | { type: 'markViewed'; path: string; blob: string }
-  | { type: 'unmarkViewed'; path: string }
+  | { type: 'markReviewed'; path: string; blob: string }
+  | { type: 'unmarkReviewed'; path: string }
   | { type: 'generateGuide' }
   | { type: 'openFile'; path: string; line: number }

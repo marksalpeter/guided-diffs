@@ -25,27 +25,27 @@ export const FileDiff = ({
   meta,
   threads,
   refractor,
-  viewed,
+  reviewed,
   collapsed,
   onToggleCollapsed,
-  onToggleViewed,
+  onToggleReviewed,
 }: {
   file: FileData
   meta: ChangedFile | undefined
   threads: Thread[]
   refractor: RefractorLike | null
-  viewed: boolean
+  reviewed: boolean
   collapsed: boolean
   onToggleCollapsed: () => void
-  onToggleViewed: () => void
+  onToggleReviewed: () => void
 }) => {
   const [pending, setPending] = useState<PendingComment | null>(null)
   const tokens = useTokens(file, refractor)
   const widgets = useWidgets(file, threads, pending, setPending)
-  const hidden = viewed || collapsed
+  const hidden = reviewed || collapsed
 
   return (
-    <section className={`gdr-file${viewed ? ' viewed' : ''}`} id={fileAnchorId(pathOf(file))}>
+    <section className={`gdr-file${reviewed ? ' reviewed' : ''}`} id={fileAnchorId(pathOf(file))}>
       <header className="gdr-file-header">
         <button className="gdr-caret" aria-label={hidden ? 'Expand' : 'Collapse'} onClick={onToggleCollapsed}>
           {hidden ? '▸' : '▾'}
@@ -55,9 +55,9 @@ export const FileDiff = ({
         {meta && <span className="gdr-stat-add">+{meta.additions}</span>}
         {meta && <span className="gdr-stat-del">−{meta.deletions}</span>}
         {threads.length > 0 && <span className="gdr-badge">{threads.length}</span>}
-        <label className="gdr-viewed">
-          <input type="checkbox" checked={viewed} onChange={onToggleViewed} />
-          Viewed
+        <label className="gdr-reviewed">
+          <input type="checkbox" checked={reviewed} onChange={onToggleReviewed} />
+          Reviewed
         </label>
       </header>
 

@@ -137,14 +137,14 @@ export class ReviewService {
     })
   }
 
-  /** markViewed ticks a file off against the blob currently shown, so a later edit clears it. */
-  markViewed(key: string, path: string, blob: string): Promise<void> {
-    return this.store.append(key, { t: 'file.viewed', path, blob, at: now() })
+  /** markReviewed ticks a file off against the blob currently shown, so a later edit clears it. */
+  markReviewed(key: string, path: string, blob: string): Promise<void> {
+    return this.store.append(key, { t: 'file.reviewed', path, blob, at: now() })
   }
 
-  /** unmarkViewed clears a file's reviewed tick. */
-  unmarkViewed(key: string, path: string): Promise<void> {
-    return this.store.append(key, { t: 'file.unviewed', path, at: now() })
+  /** unmarkReviewed clears a file's reviewed tick. */
+  unmarkReviewed(key: string, path: string): Promise<void> {
+    return this.store.append(key, { t: 'file.unreviewed', path, at: now() })
   }
 
   /** resolveThread closes a thread, which hides it from the agent. */

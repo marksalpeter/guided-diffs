@@ -202,30 +202,30 @@ describe('ReviewService', () => {
     const { files } = await service.load(key)
     const file = files[0]!
 
-    await service.markViewed(key, file.path, file.newBlob!)
-    expect((await service.load(key)).state.viewedBlobs[file.path]).toBe(file.newBlob)
+    await service.markReviewed(key, file.path, file.newBlob!)
+    expect((await service.load(key)).state.reviewedBlobs[file.path]).toBe(file.newBlob)
   })
 
   it('leaves a stale tick behind when the file changes, so the UI can un-tick it', async () => {
     const key = await service.openBranchReview()
     const before = (await service.load(key)).files[0]!
-    await service.markViewed(key, before.path, before.newBlob!)
+    await service.markReviewed(key, before.path, before.newBlob!)
 
     await writeLines(['one', 'two', 'three', 'target', 'five', 'six'])
     await commit('more work')
     await service.openBranchReview()
 
     const { state, files } = await service.load(key)
-    expect(state.viewedBlobs['a.ts']).toBe(before.newBlob)
+    expect(state.reviewedBlobs['a.ts']).toBe(before.newBlob)
     expect(files[0]?.newBlob).not.toBe(before.newBlob)
   })
 
   it('clears a tick outright when unmarked', async () => {
     const key = await service.openBranchReview()
     const file = (await service.load(key)).files[0]!
-    await service.markViewed(key, file.path, file.newBlob!)
-    await service.unmarkViewed(key, file.path)
+    await service.markReviewed(key, file.path, file.newBlob!)
+    await service.unmarkReviewed(key, file.path)
 
-    expect((await service.load(key)).state.viewedBlobs).toEqual({})
+    expect((await service.load(key)).state.reviewedBlobs).toEqual({})
   })
 })

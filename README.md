@@ -27,9 +27,14 @@ and a tick in its corner; ticking it resolves the thread, which collapses it to 
 you can expand again. Commenting on a resolved thread reopens it. You resolve; nothing
 else can.
 
-**Tick files off as you go.** Each file has a *Viewed* checkbox that collapses it. The
-tick is recorded against that file's blob, so it clears itself the moment the file
-changes underneath you.
+**Tick files off as you go.** Each file has a *Reviewed* checkbox that collapses it, and
+each chapter shows how many of its files are done. The tick is recorded against that
+file's blob, so it clears itself the moment the file changes underneath you.
+
+**The left column is the map.** Before a guide exists it is one stacked list of every
+changed file; clicking a card scrolls the diff pane to it. Once the guide lands the list
+breaks into its chapters, each under its own title and summary. While generation runs, a
+pill floats over the bottom of the column with the review's total diffstat.
 
 **Hand them to an agent.** Tell Claude "address the guided review comments". It reads
 your threads, fixes the code, commits, and replies — and the replies appear in the
@@ -120,7 +125,7 @@ is vsix size — 2 MB rather than 745 KB.
 ## Tests
 
 ```sh
-npm test          # 148 unit and integration tests
+npm test          # 155 unit and integration tests
 npm run typecheck
 npm run lint
 ```

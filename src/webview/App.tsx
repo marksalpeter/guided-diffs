@@ -5,6 +5,7 @@ import type { HostMessage, ReviewPayload } from '../core/protocol.js'
 import type { GuideGroup, Thread } from '../core/types.js'
 import { CommentThread } from './CommentThread.js'
 import { FileDiff, fileAnchorId, pathOf } from './FileDiff.js'
+import { FileList, isReviewed, reviewedCount } from './FileList.js'
 import { GuideStatus } from './GuideStatus.js'
 import { activeTheme, loadRefractor, type RefractorLike } from './highlight.js'
 import { loadViewState, post, saveViewState } from './vscodeApi.js'
@@ -52,6 +53,8 @@ export const App = () => {
   }
 
   const { state } = payload
+  // the payload crosses a process boundary, so never assume the map arrived
+  const reviewedBlobs = state.reviewedBlobs ?? {}
   const outdated = state.threads.filter(thread => thread.status === 'outdated' && thread.state === 'open')
 
   return (
@@ -60,7 +63,6 @@ export const App = () => {
         <span className="gdr-refs">
           <code>{state.refs.baseLabel}</code> → <code>{state.refs.headLabel}</code>
         </span>
-        <GuideStatus state={state} busy={payload.guideBusy} />
         <span className="gdr-spacer" />
         <div className="gdr-modes">
           <button aria-pressed={mode === 'guided'} onClick={() => setMode('guided')}>
@@ -75,8 +77,14 @@ export const App = () => {
       <div className="gdr-main" ref={scroller}>
         {chapters.length === 0 && <div className="gdr-empty">No changes between these commits.</div>}
         {chapters.map(chapter => (
-          <section className={`gdr-chapter${chapter.group ? '' : ' bare'}`} key={chapter.id}>
-            {chapter.group && <ChapterSummary group={chapter.group} onJumpToFile={jumpToFile} />}
+          <section className="gdr-chapter" key={chapter.id}>
+            <ChapterSummary
+              group={chapter.group}
+              paths={chapter.files.map(pathOf)}
+              files={payload.files}
+              reviewedBlobs={reviewedBlobs}
+              onJumpToFile={jumpToFile}
+            />
             <div className="gdr-chapter-files">
               {chapter.files.map(file => {
                 const path = pathOf(file)
@@ -88,13 +96,13 @@ export const App = () => {
                     meta={meta}
                     threads={threadsForPath(state.threads, path)}
                     refractor={refractor}
-                    viewed={isViewed(state.viewedBlobs[path], meta?.newBlob)}
+                    reviewed={isReviewed(reviewedBlobs[path], meta?.newBlob)}
                     collapsed={collapsed.has(path)}
                     onToggleCollapsed={() => toggleCollapsed(path)}
-                    onToggleViewed={() =>
-                      isViewed(state.viewedBlobs[path], meta?.newBlob)
-                        ? post({ type: 'unmarkViewed', path })
-                        : post({ type: 'markViewed', path, blob: meta?.newBlob ?? '' })
+                    onToggleReviewed={() =>
+                      isReviewed(reviewedBlobs[path], meta?.newBlob)
+                        ? post({ type: 'unmarkReviewed', path })
+                        : post({ type: 'markReviewed', path, blob: meta?.newBlob ?? '' })
                     }
                   />
                 )
@@ -104,24 +112,38 @@ export const App = () => {
         ))}
         {outdated.length > 0 && <OutdatedThreads threads={outdated} />}
       </div>
+      <GuideStatus state={state} busy={payload.guideBusy} files={payload.files} />
     </div>
   )
 }
 
-/** ChapterSummary is the guide text that stays pinned while its files scroll past. */
-const ChapterSummary = ({ group, onJumpToFile }: { group: GuideGroup; onJumpToFile: (path: string) => void }) => (
+/** ChapterSummary is the left column: a chapter heading when the guide has one, then its files. */
+const ChapterSummary = ({
+  group,
+  paths,
+  files,
+  reviewedBlobs,
+  onJumpToFile,
+}: {
+  group?: GuideGroup
+  paths: readonly string[]
+  files: ReviewPayload['files']
+  reviewedBlobs: Record<string, string>
+  onJumpToFile: (path: string) => void
+}) => (
   <div className="gdr-chapter-summary">
     <div className="gdr-chapter-sticky">
-      <div className="gdr-kind">{kindLabels[group.kind] ?? group.kind}</div>
-      <div className="gdr-group-title">{group.title}</div>
-      <div className="gdr-group-summary">{group.summary}</div>
-      <div className="gdr-group-files">
-        {group.files.map(path => (
-          <span key={path} className="gdr-group-file" title={path} onClick={() => onJumpToFile(path)}>
-            {path}
-          </span>
-        ))}
-      </div>
+      {group && (
+        <>
+          <div className="gdr-kind">{kindLabels[group.kind] ?? group.kind}</div>
+          <div className="gdr-group-title">{group.title}</div>
+          <div className="gdr-chapter-progress">
+            {String(reviewedCount(paths, files, reviewedBlobs)).padStart(2, '0')} / {String(paths.length).padStart(2, '0')} reviewed
+          </div>
+          <div className="gdr-group-summary">{group.summary}</div>
+        </>
+      )}
+      <FileList paths={paths} files={files} reviewedBlobs={reviewedBlobs} onSelect={onJumpToFile} />
     </div>
   </div>
 )
@@ -239,11 +261,6 @@ function topVisibleFile(scroller: HTMLDivElement): { id: string; offset: number 
     }
   }
   return null
-}
-
-/** isViewed reports whether the tick was made against the blob currently on screen. */
-function isViewed(markedBlob: string | undefined, currentBlob: string | null | undefined): boolean {
-  return markedBlob !== undefined && markedBlob === (currentBlob ?? '')
 }
 
 /** threadsForPath selects the threads anchored to one file. */

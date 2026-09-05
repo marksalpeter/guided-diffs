@@ -12,7 +12,7 @@ export function foldReview(events: readonly ReviewEvent[]): ReviewState {
     refs: { ...emptyRefs },
     threads: [],
     guideStale: false,
-    viewedBlobs: {},
+    reviewedBlobs: {},
   }
   const threads = new Map<string, Thread>()
 
@@ -88,11 +88,11 @@ function applyEvent(state: ReviewState, threads: Map<string, Thread>, event: Rev
     case 'guide.failed':
       state.guideError = event.message
       return
-    case 'file.viewed':
-      state.viewedBlobs[event.path] = event.blob
+    case 'file.reviewed':
+      state.reviewedBlobs[event.path] = event.blob
       return
-    case 'file.unviewed':
-      delete state.viewedBlobs[event.path]
+    case 'file.unreviewed':
+      delete state.reviewedBlobs[event.path]
       return
   }
 }

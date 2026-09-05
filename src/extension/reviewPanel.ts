@@ -85,11 +85,11 @@ export class ReviewPanel {
         case 'reopen':
           await this.service.reopenThread(this.key, message.threadId)
           break
-        case 'markViewed':
-          await this.service.markViewed(this.key, message.path, message.blob)
+        case 'markReviewed':
+          await this.service.markReviewed(this.key, message.path, message.blob)
           break
-        case 'unmarkViewed':
-          await this.service.unmarkViewed(this.key, message.path)
+        case 'unmarkReviewed':
+          await this.service.unmarkReviewed(this.key, message.path)
           break
         case 'generateGuide':
           return await this.generateGuide()

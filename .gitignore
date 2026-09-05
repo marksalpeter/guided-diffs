@@ -6,3 +6,4 @@ out/
 guided-diffs-*.vsix
 scripts/payload.json
 scripts/render-stats.json
+scripts/*.png

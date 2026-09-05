@@ -5,7 +5,7 @@ narrative of the change, and comment threads a coding agent can read and reply t
 
 Everything is local. Review state never enters git and never reaches a server.
 
-![The guided review](media/screenshot-dark.png)
+![The guided review, showing chapter summaries beside their diffs, a comment thread with an agent reply, and per-file Viewed ticks](media/screenshot-dark.png)
 
 ## What it does
 
@@ -19,6 +19,8 @@ supporting edits — each with a title and a one-or-two sentence summary, genera
 Claude Code running headless on your machine. Each chapter's summary stays pinned
 beside its files and releases at the next chapter, so you always know which part of the
 change you are reading.
+
+![Mid-scroll: each chapter summary stays pinned beside its own files, and a resolved thread sits collapsed to a single line](media/screenshot-sticky.png)
 
 **Comment on lines.** Click a line number, write a comment. Every thread has a reply box
 and a tick in its corner; ticking it resolves the thread, which collapses it to one line

@@ -87,7 +87,7 @@ for (const theme of ['dark', 'light']) {
   await page.goto(`http://localhost:4319/harness-${theme}`, { waitUntil: 'networkidle' })
   await page.waitForSelector('.gdr-file', { timeout: 20000 })
   await page.waitForTimeout(700)
-  await page.screenshot({ path: `scripts/screenshot-${theme}.png` })
+  await page.screenshot({ path: `media/screenshot-${theme}.png` })
   if (theme === 'dark') {
     const stats = await page.evaluate(() => ({
       files: document.querySelectorAll('.gdr-file').length,

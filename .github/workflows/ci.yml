@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # playwright is only used by the local screenshot scripts; CI never launches a browser
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run build
+
+      # packaging in CI catches .vscodeignore and manifest breakage before merge
+      - name: Package the extension
+        run: npx vsce package --out guided-diffs-pr.vsix
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guided-diffs-vsix
+          path: guided-diffs-pr.vsix
+          if-no-files-found: error
+          retention-days: 14

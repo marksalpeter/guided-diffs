@@ -119,6 +119,26 @@ mocking them would only test assumptions about git.
 npx vitest run -c vitest.e2e.config.ts   # full stack against the real claude binary
 ```
 
+## Releasing
+
+Two workflows in `.github/workflows`:
+
+- **CI** runs on every pull request and on `main`: lint, typecheck, the full test
+  suite, a build, and a real `vsce package`. The packaged vsix is uploaded as a build
+  artifact, so a reviewer can install the exact bits a PR produces.
+- **Release** runs on any `v*` tag. It re-runs every check, packages the extension, and
+  publishes a GitHub release with the vsix attached. It refuses to publish when the tag
+  and `package.json` version disagree, and a tag carrying a suffix (`v0.2.0-beta.1`)
+  publishes as a pre-release.
+
+```sh
+npm version minor        # bump package.json and tag
+git push --follow-tags
+```
+
+Neither workflow runs the `claude` end-to-end suite — it needs credentials and costs
+money per run. Run that locally before tagging.
+
 ## Known limits
 
 - No split view. Unified only.

@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  release:
+    name: Build, package and publish the vsix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Check the tag matches the manifest version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          declared="$(node -p "require('./package.json').version")"
+          if [ "$version" != "$declared" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match package.json version ${declared}"
+            exit 1
+          fi
+          echo "VSIX=guided-diffs-${version}.vsix" >> "$GITHUB_ENV"
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run build
+
+      - name: Package the extension
+        run: npx vsce package --out "$VSIX"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--title "$GITHUB_REF_NAME" --generate-notes)
+          # a tag like v0.2.0-beta.1 publishes as a pre-release
+          case "$GITHUB_REF_NAME" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" "$VSIX" "${flags[@]}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guided-diffs-vsix
+          path: ${{ env.VSIX }}
+          if-no-files-found: error

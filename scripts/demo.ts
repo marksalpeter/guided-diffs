@@ -64,7 +64,7 @@ const files: Record<string, string> = {
 }
 
 async function main(): Promise<void> {
-  const dir = await mkdtemp(join(tmpdir(), 'gdr-demo-'))
+  const dir = await mkdtemp(join(tmpdir(), 'gr-demo-'))
   const exec = new SystemExec(dir)
   await exec.run('git', ['init', '-q', '-b', 'main'])
   await exec.run('git', ['config', 'user.email', 'demo@example.com'])

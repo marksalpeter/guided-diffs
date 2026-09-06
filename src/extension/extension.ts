@@ -10,13 +10,13 @@ export function activate(context: vscode.ExtensionContext): void {
   const assets = vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('guidedDiffs.reviewBranch', () => run(assets, reviewBranch)),
-    vscode.commands.registerCommand('guidedDiffs.compareCommits', () => run(assets, compareCommits)),
-    vscode.commands.registerCommand('guidedDiffs.deleteReview', () => run(assets, deleteReview)),
-    vscode.commands.registerCommand('guidedDiffs.installAgentSupport', () =>
+    vscode.commands.registerCommand('guidedReviews.reviewBranch', () => run(assets, reviewBranch)),
+    vscode.commands.registerCommand('guidedReviews.compareCommits', () => run(assets, compareCommits)),
+    vscode.commands.registerCommand('guidedReviews.deleteReview', () => run(assets, deleteReview)),
+    vscode.commands.registerCommand('guidedReviews.installAgentSupport', () =>
       run(assets, async service => {
         await install(context, service)
-        void vscode.window.showInformationMessage('Guided Diffs: Claude Code skill and CLI installed.')
+        void vscode.window.showInformationMessage('Guided Reviews: Claude Code skill and CLI installed.')
       }),
     ),
     vscode.window.registerUriHandler({
@@ -61,7 +61,7 @@ async function compareCommits(service: ReviewService, assets: vscode.Uri): Promi
   ReviewPanel.show(service, await service.openRangeReview(base, head), assets)
 }
 
-/** openFromUri opens the branch review for the repository a `gdr review` deep link names. */
+/** openFromUri opens the branch review for the repository a `review review` deep link names. */
 async function openFromUri(uri: vscode.Uri, assets: vscode.Uri): Promise<void> {
   const repo = new URLSearchParams(uri.query).get('repo') ?? ''
   // the link can land in any window running the extension, so prefer the folder it asked for
@@ -73,13 +73,13 @@ async function openFromUri(uri: vscode.Uri, assets: vscode.Uri): Promise<void> {
 async function deleteReview(service: ReviewService): Promise<void> {
   const keys = await service.reviews.list()
   if (keys.length === 0) {
-    void vscode.window.showInformationMessage('Guided Diffs: no reviews to delete.')
+    void vscode.window.showInformationMessage('Guided Reviews: no reviews to delete.')
     return
   }
   const key = await vscode.window.showQuickPick(keys, { title: 'Delete which review?' })
   if (key) {
     await service.reviews.delete(key)
-    void vscode.window.showInformationMessage(`Guided Diffs: deleted review ${key}.`)
+    void vscode.window.showInformationMessage(`Guided Reviews: deleted review ${key}.`)
   }
 }
 
@@ -104,14 +104,14 @@ async function run(
     const service = options.service ?? (await currentService())
     if (!service) {
       if (!options.silent) {
-        void vscode.window.showErrorMessage('Guided Diffs: open a git repository first.')
+        void vscode.window.showErrorMessage('Guided Reviews: open a git repository first.')
       }
       return
     }
     await command(service, assets)
   } catch (error) {
     if (!options.silent) {
-      void vscode.window.showErrorMessage(`Guided Diffs: ${messageOf(error)}`)
+      void vscode.window.showErrorMessage(`Guided Reviews: ${messageOf(error)}`)
     }
   }
 }
@@ -124,7 +124,7 @@ async function currentService(): Promise<ReviewService | undefined> {
 
 /** serviceFor builds a review service for one workspace folder, unless it holds no repository. */
 async function serviceFor(folder: vscode.WorkspaceFolder): Promise<ReviewService | undefined> {
-  const override = vscode.workspace.getConfiguration('guidedDiffs').get('defaultBranch', '')
+  const override = vscode.workspace.getConfiguration('guidedReviews').get('defaultBranch', '')
   const git = new Git(folder.uri.fsPath, undefined, override)
   try {
     await git.revParse('HEAD')

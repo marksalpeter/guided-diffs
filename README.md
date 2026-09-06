@@ -1,4 +1,4 @@
-# Guided Diffs
+# Guided Reviews
 
 A VS Code extension for reviewing your own commits locally — with an AI-guided
 narrative of the change, and comment threads a coding agent can read and reply to.
@@ -9,7 +9,7 @@ Everything is local. Review state never enters git and never reaches a server.
 
 ## What it does
 
-**Review your branch.** *Guided Diffs: Review Branch* diffs
+**Review your branch.** *Guided Reviews: Review Branch* diffs
 `merge-base(origin/<default>, HEAD)` → `HEAD` and opens it in a panel. The base is
 pinned when the review is created, so it does not drift when the default branch moves.
 
@@ -49,7 +49,7 @@ the line they now belong on, by exact hunk-offset arithmetic. A thread only goes
 `outdated` when its line is genuinely gone, and even then it stays visible with the
 code it was written against.
 
-**Compare any two commits.** *Guided Diffs: Compare Two Commits* takes any branch tip,
+**Compare any two commits.** *Guided Reviews: Compare Two Commits* takes any branch tip,
 tag, sha, or revspec like `HEAD~3`. That comparison is a full review too — guide,
 comments and all — frozen to the pair you picked.
 
@@ -59,10 +59,10 @@ comments and all — frozen to the pair you picked.
 npm install
 npm run build
 npx @vscode/vsce package
-code --install-extension guided-diffs-0.1.0.vsix
+code --install-extension guided-reviews-0.1.0.vsix
 ```
 
-The guided review shells out to the `claude` CLI. Point `guidedDiffs.claudePath` at it
+The guided review shells out to the `claude` CLI. Point `guidedReviews.claudePath` at it
 if it is not on your `PATH`. Everything else works without it — a failed or missing
 guide leaves a Retry button in the toolbar, with the diff fully usable. A guide that
 classifies nothing is treated as a failure rather than shown as an empty result.
@@ -71,9 +71,9 @@ classifies nothing is treated as a failure rather than shown as an empty result.
 
 On activation the extension writes two things into your workspace:
 
-- `.guided-review/bin/gdr` — the CLI, run through VS Code's own Node so it works with
+- `.guided-review/bin/review` — the CLI, run through VS Code's own Node so it works with
   no `node` on `PATH`.
-- `.claude/skills/guided-diffs/SKILL.md` — the skill that teaches Claude Code the
+- `.claude/skills/guided-reviews/SKILL.md` — the skill that teaches Claude Code the
   commands below.
 
 Both are hidden from git: the store ignores itself, and the skill is added to
@@ -81,11 +81,11 @@ Both are hidden from git: the store ignores itself, and the skill is added to
 touched.
 
 ```sh
-.guided-review/bin/gdr review                 # open the panel on this branch
-.guided-review/bin/gdr comments               # unresolved threads, as markdown
-.guided-review/bin/gdr comments --unanswered  # only ones you have not answered
-.guided-review/bin/gdr comments --json        # the same, structured
-.guided-review/bin/gdr reply <thread-id> -m "handled the null case in abc123"
+.guided-review/bin/review review                 # open the panel on this branch
+.guided-review/bin/review comments               # unresolved threads, as markdown
+.guided-review/bin/review comments --unanswered  # only ones you have not answered
+.guided-review/bin/review comments --json        # the same, structured
+.guided-review/bin/review reply <thread-id> -m "handled the null case in abc123"
 ```
 
 There is deliberately **no resolve command**. An agent can reply; only the human
@@ -96,7 +96,7 @@ shown to the agent again.
 
 ```
 src/core        pure domain logic — no vscode, no react   (git, event log, relocation, guide)
-src/cli         the agent-facing gdr command
+src/cli         the agent-facing review command
 src/extension   activation, commands, panel host, file watching
 src/webview     the review UI
 ```

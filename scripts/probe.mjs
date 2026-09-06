@@ -16,9 +16,9 @@ await new Promise(r=>server.listen(4321,r))
 const browser=await chromium.launch({args:['--no-sandbox']})
 const page=await browser.newPage()
 await page.goto('http://localhost:4321/h',{waitUntil:'networkidle'})
-await page.waitForSelector('.gdr-file')
+await page.waitForSelector('.gr-file')
 const info = await page.evaluate(() => {
-  const sections=[...document.querySelectorAll('.gdr-file')]
+  const sections=[...document.querySelectorAll('.gr-file')]
   const server=sections.find(s=>s.textContent?.includes('src/server.ts'))
   const inserts=[...(server?.querySelectorAll('.diff-code-insert')??[])].slice(0,3)
   return inserts.map(td=>({ text: td.textContent, html: td.innerHTML.slice(0,400) }))

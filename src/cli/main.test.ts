@@ -15,7 +15,7 @@ class Capture {
   }
 }
 
-describe('gdr', () => {
+describe('review', () => {
   let dir: string
   let cwd: string
   let service: ReviewService
@@ -24,7 +24,7 @@ describe('gdr', () => {
 
   beforeEach(async () => {
     cwd = process.cwd()
-    dir = await mkdtemp(join(tmpdir(), 'gdr-cli-'))
+    dir = await mkdtemp(join(tmpdir(), 'gr-cli-'))
     const exec = new SystemExec(dir)
     await exec.run('git', ['init', '-q', '-b', 'main'])
     await exec.run('git', ['config', 'user.email', 'test@example.com'])
@@ -50,7 +50,7 @@ describe('gdr', () => {
 
   it('prints usage with no arguments', async () => {
     expect(await main([], out, err)).toBe(0)
-    expect(out.text).toContain('gdr comments')
+    expect(out.text).toContain('review comments')
   })
 
   it('rejects an unknown command', async () => {
@@ -125,7 +125,7 @@ describe('gdr', () => {
 
   it('requires a message when replying', async () => {
     expect(await main(['reply', 't_abc'], out, err)).toBe(1)
-    expect(err.text).toContain('usage: gdr reply')
+    expect(err.text).toContain('usage: review reply')
   })
 
   it('has no way to resolve a thread', async () => {

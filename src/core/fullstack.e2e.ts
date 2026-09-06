@@ -26,7 +26,7 @@ describe('full stack against the real claude binary', () => {
 
   beforeAll(async () => {
     cwd = process.cwd()
-    dir = await mkdtemp(join(tmpdir(), 'gdr-e2e-'))
+    dir = await mkdtemp(join(tmpdir(), 'gr-e2e-'))
     exec = new SystemExec(dir)
     await exec.run('git', ['init', '-q', '-b', 'main'])
     await exec.run('git', ['config', 'user.email', 'test@example.com'])
@@ -128,7 +128,7 @@ describe('full stack against the real claude binary', () => {
     expect(await main(['comments'], out, new Capture())).toBe(0)
     expect(out.text).toContain('src/auth.ts:7')
     expect(out.text).toContain('token can be null here')
-    expect(out.text).toContain('gdr reply <thread-id>')
+    expect(out.text).toContain('review reply <thread-id>')
   })
 
   it('shows the agent reply back to the human', async () => {

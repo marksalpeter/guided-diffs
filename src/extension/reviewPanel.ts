@@ -5,7 +5,7 @@ import { ClaudeCli } from '../core/guide.js'
 import { ReviewService } from '../core/review.js'
 
 /** viewType identifies the panel for VS Code's tab restore. */
-export const viewType = 'guidedDiffs.review'
+export const viewType = 'guidedReviews.review'
 
 /** ReviewPanel hosts one review's webview and keeps it in step with the event log. */
 export class ReviewPanel {
@@ -107,7 +107,7 @@ export class ReviewPanel {
       }
       await this.push()
     } catch (error) {
-      void vscode.window.showErrorMessage(`Guided Diffs: ${messageOf(error)}`)
+      void vscode.window.showErrorMessage(`Guided Reviews: ${messageOf(error)}`)
     }
   }
 
@@ -133,7 +133,7 @@ export class ReviewPanel {
     this.guideBusy = true
     await this.push()
 
-    const settings = vscode.workspace.getConfiguration('guidedDiffs')
+    const settings = vscode.workspace.getConfiguration('guidedReviews')
     const runner = new ClaudeCli(settings.get('claudePath', 'claude'), settings.get('model', 'claude-opus-5'))
     try {
       await this.service.generateGuide(this.key, runner)
@@ -189,7 +189,7 @@ export class ReviewPanel {
     <meta http-equiv="Content-Security-Policy" content="${csp}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="${style.toString()}" />
-    <title>Guided Diffs</title>
+    <title>Guided Reviews</title>
   </head>
   <body>
     <div id="root"></div>

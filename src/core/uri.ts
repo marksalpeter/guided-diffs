@@ -1,5 +1,5 @@
 /** extensionId addresses this extension inside an editor deep link. */
-export const extensionId = 'marksalpeter.guided-diffs'
+export const extensionId = 'marksalpeter.guided-reviews'
 
 /** reviewUri is the deep link that opens the branch review for one repository. */
 export function reviewUri(scheme: string, repoRoot: string): string {

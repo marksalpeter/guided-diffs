@@ -23,7 +23,7 @@ describe('ReviewStore', () => {
   let store: ReviewStore
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'gdr-store-'))
+    dir = await mkdtemp(join(tmpdir(), 'gr-store-'))
     store = new ReviewStore(dir)
   })
 

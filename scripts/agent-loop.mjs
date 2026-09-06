@@ -5,7 +5,7 @@ import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 const run = promisify(execFile)
 
-const repo = await mkdtemp(join(tmpdir(), 'gdr-agent-'))
+const repo = await mkdtemp(join(tmpdir(), 'gr-agent-'))
 const git = (...a) => run('git', a, { cwd: repo })
 await git('init', '-q', '-b', 'main')
 await git('config', 'user.email', 'demo@example.com')
@@ -26,8 +26,8 @@ await svc.install(process.execPath, join(process.cwd(), 'dist/cli.js'))
 const key = await svc.openBranchReview()
 await svc.startThread(key, 'src/parse.ts', 'new', 6, 'JSON.parse throws on malformed input — this should return a typed error, not blow up the caller.')
 
-console.log('--- skill installed at .claude/skills/guided-diffs/SKILL.md')
-console.log('--- shim installed at .guided-review/bin/gdr')
+console.log('--- skill installed at .claude/skills/guided-reviews/SKILL.md')
+console.log('--- shim installed at .guided-review/bin/review')
 console.log('--- one unresolved thread seeded\n')
 
 const claude = spawn('claude', [
@@ -68,5 +68,5 @@ console.log('\n--- git log ---')
 console.log((await git('log', '--oneline', '-3')).stdout.trim())
 console.log('\n--- final src/parse.ts ---')
 console.log(await readFile(join(repo, 'src/parse.ts'), 'utf8'))
-console.log('used gdr:', toolCalls.some(t => t.includes('gdr')))
+console.log('used review:', toolCalls.some(t => t.includes('review')))
 await rm(repo, { recursive: true, force: true })

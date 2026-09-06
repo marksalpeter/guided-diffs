@@ -4,10 +4,10 @@ import { storeDir } from '../core/git.js'
 import { ReviewStore } from '../core/store.js'
 
 /** shimRelativePath is where the agent-facing CLI launcher is written, inside the ignored store. */
-export const shimRelativePath = `${storeDir}/bin/gdr`
+export const shimRelativePath = `${storeDir}/bin/review`
 
 /** skillRelativePath is the Claude Code skill the agent discovers by filesystem. */
-export const skillRelativePath = '.claude/skills/guided-diffs/SKILL.md'
+export const skillRelativePath = '.claude/skills/guided-reviews/SKILL.md'
 
 /** skillVersion is bumped whenever the skill's contract changes, forcing a rewrite. */
 export const skillVersion = 2
@@ -16,7 +16,7 @@ export const skillVersion = 2
 export async function installAgentSupport(options: InstallOptions): Promise<void> {
   // the shim lives inside the store, so the store's self-ignoring .gitignore must exist first
   await new ReviewStore(options.repoRoot).ensureStoreDir()
-  await writeShim(options.repoRoot, options.nodePath, options.cliPath, { GDR_URI_SCHEME: options.uriScheme })
+  await writeShim(options.repoRoot, options.nodePath, options.cliPath, { REVIEW_URI_SCHEME: options.uriScheme })
   await writeSkill(options.repoRoot)
   await excludeFromGit(options.gitCommonDir, skillRelativePath)
 }
@@ -56,16 +56,16 @@ export async function excludeFromGit(gitCommonDir: string, path: string): Promis
 /** skillBody is the skill document written into the workspace. */
 function skillBody(): string {
   return `---
-name: guided-diffs
+name: guided-reviews
 version: ${skillVersion}
 description: |
-  Read and reply to code review comments left by the human in the Guided Diffs
+  Read and reply to code review comments left by the human in the Guided Reviews
   VS Code extension. Use when the user asks you to address review comments,
   check the guided review, respond to review feedback, or fix what the reviewer
   flagged.
 ---
 
-# Guided Diffs review comments
+# Guided Reviews review comments
 
 The human reviews your commits in VS Code and leaves comment threads. Those
 threads are **not** in git and **not** greppable — read them through the CLI.
@@ -92,7 +92,7 @@ ${shimRelativePath} review
 
 That opens the review panel on the current branch in the editor, generating the
 guide if the branch has none, and is also how you show the human your work.
-If the file at \`${shimRelativePath}\` does not exist, the Guided Diffs
+If the file at \`${shimRelativePath}\` does not exist, the Guided Reviews
 extension is not installed — say so rather than guessing.
 
 ## Replying

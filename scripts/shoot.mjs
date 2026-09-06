@@ -85,21 +85,21 @@ for (const theme of ['dark', 'light']) {
   page.on('pageerror', e => errors.push(`${theme}: ${e.message}`))
   page.on('console', m => { if (m.type() === 'error') errors.push(`${theme} console: ${m.text()}`) })
   await page.goto(`http://localhost:4319/harness-${theme}`, { waitUntil: 'networkidle' })
-  await page.waitForSelector('.gdr-file', { timeout: 20000 })
+  await page.waitForSelector('.gr-file', { timeout: 20000 })
   await page.waitForTimeout(700)
   await page.screenshot({ path: `media/screenshot-${theme}.png` })
   if (theme === 'dark') {
     const stats = await page.evaluate(() => ({
-      files: document.querySelectorAll('.gdr-file').length,
-      groups: document.querySelectorAll('.gdr-chapter').length,
-      threads: document.querySelectorAll('.gdr-thread').length,
+      files: document.querySelectorAll('.gr-file').length,
+      groups: document.querySelectorAll('.gr-chapter').length,
+      threads: document.querySelectorAll('.gr-thread').length,
       styledTokens: document.querySelectorAll('.diff-code span[style*="color"]').length,
       insertRows: document.querySelectorAll('.diff-code-insert').length,
-      firstGroup: document.querySelector('.gdr-group-title')?.textContent,
-      reviewedFiles: document.querySelectorAll('.gdr-file.reviewed').length,
-      resolvedThreads: document.querySelectorAll('.gdr-thread.resolved').length,
-      composers: document.querySelectorAll('.gdr-composer').length,
-      firstFile: document.querySelector('.gdr-file-header strong')?.textContent,
+      firstGroup: document.querySelector('.gr-group-title')?.textContent,
+      reviewedFiles: document.querySelectorAll('.gr-file.reviewed').length,
+      resolvedThreads: document.querySelectorAll('.gr-thread.resolved').length,
+      composers: document.querySelectorAll('.gr-composer').length,
+      firstFile: document.querySelector('.gr-file-header strong')?.textContent,
     }))
     await writeFile('scripts/render-stats.json', JSON.stringify(stats, null, 2))
     console.log(JSON.stringify(stats, null, 2))

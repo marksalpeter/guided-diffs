@@ -53,7 +53,7 @@ function short(sha: string): string {
 /** replyInstructions tell the agent the only two things it is allowed to do. */
 const replyInstructions = [
   '---',
-  'Reply to a thread with: gdr reply <thread-id> -m "what you changed"',
+  'Reply to a thread with: review reply <thread-id> -m "what you changed"',
   'You cannot resolve threads — only the human reviewer can.',
 ].join('\n')
 

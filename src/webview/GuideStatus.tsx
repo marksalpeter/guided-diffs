@@ -14,7 +14,7 @@ export const GuideStatus = ({
   if (busy) {
     return (
       <Pill>
-        <span className="gdr-pill-label">Generating guide…</span>
+        <span className="gr-pill-label">Generating guide…</span>
         <DiffStat files={files} />
       </Pill>
     )
@@ -22,7 +22,7 @@ export const GuideStatus = ({
   if (state.guideError) {
     return (
       <Pill>
-        <span className="gdr-pill-label error">{state.guideError}</span>
+        <span className="gr-pill-label error">{state.guideError}</span>
         <button className="secondary" onClick={() => post({ type: 'generateGuide' })}>
           Retry
         </button>
@@ -40,7 +40,7 @@ export const GuideStatus = ({
   if (state.guideStale) {
     return (
       <Pill>
-        <span className="gdr-pill-label">Guide describes an earlier commit</span>
+        <span className="gr-pill-label">Guide describes an earlier commit</span>
         <button className="secondary" onClick={() => post({ type: 'generateGuide' })}>
           Regenerate
         </button>
@@ -51,17 +51,17 @@ export const GuideStatus = ({
 }
 
 /** Pill is the floating container anchored to the bottom of the left column. */
-const Pill = ({ children }: { children: React.ReactNode }) => <div className="gdr-pill">{children}</div>
+const Pill = ({ children }: { children: React.ReactNode }) => <div className="gr-pill">{children}</div>
 
 /** DiffStat summarises the whole review the way the file cards summarise one file. */
 const DiffStat = ({ files }: { files: readonly ChangedFile[] }) => {
   const additions = files.reduce((total, file) => total + file.additions, 0)
   const deletions = files.reduce((total, file) => total + file.deletions, 0)
   return (
-    <span className="gdr-pill-stat">
+    <span className="gr-pill-stat">
       {files.length} {files.length === 1 ? 'file' : 'files'} changed
-      <span className="gdr-stat-add">+{additions}</span>
-      <span className="gdr-stat-del">−{deletions}</span>
+      <span className="gr-stat-add">+{additions}</span>
+      <span className="gr-stat-del">−{deletions}</span>
     </span>
   )
 }

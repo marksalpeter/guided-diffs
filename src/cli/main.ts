@@ -7,11 +7,11 @@ import { openCommand, reviewUri } from '../core/uri.js'
 import { noThreadsMessage, renderThreads } from './render.js'
 
 /** usage is printed for `--help` and for any unrecognised invocation. */
-const usage = `gdr — read and reply to guided review comments
+const usage = `review — read and reply to guided review comments
 
-  gdr review                             open the review panel for the current branch
-  gdr comments [--unanswered] [--json]   list unresolved threads for the current review
-  gdr reply <thread-id> -m <message>     reply to a thread
+  review review                             open the review panel for the current branch
+  review comments [--unanswered] [--json]   list unresolved threads for the current review
+  review reply <thread-id> -m <message>     reply to a thread
 
 Only the human reviewer can resolve a thread.`
 
@@ -45,7 +45,7 @@ export async function main(argv: readonly string[], out: Writer = process.stdout
 async function runReview(out: Writer): Promise<number> {
   const root = await repoRoot()
   // the shim records the editor's own scheme, so Cursor and Insiders deep-link to themselves
-  const uri = reviewUri(process.env.GDR_URI_SCHEME ?? 'vscode', root)
+  const uri = reviewUri(process.env.REVIEW_URI_SCHEME ?? 'vscode', root)
   const { command, args } = openCommand(process.platform, uri)
   await new SystemExec(root).run(command, args)
   out.write(`opening the review panel for ${root}\n`)
@@ -71,7 +71,7 @@ async function runReply(args: readonly string[], out: Writer): Promise<number> {
   const threadId = args[0]
   const body = readMessage(args)
   if (!threadId || !body) {
-    throw new Error('usage: gdr reply <thread-id> -m <message>')
+    throw new Error('usage: review reply <thread-id> -m <message>')
   }
 
   const { service, key } = await resolveReview()

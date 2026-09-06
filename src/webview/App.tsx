@@ -39,10 +39,10 @@ export const App = () => {
   }, [])
 
   if (fatal) {
-    return <div className="gdr-empty">{fatal}</div>
+    return <div className="gr-empty">{fatal}</div>
   }
   if (!payload) {
-    return <div className="gdr-empty">Loading review…</div>
+    return <div className="gr-empty">Loading review…</div>
   }
 
   const { state } = payload
@@ -51,13 +51,13 @@ export const App = () => {
   const outdated = state.threads.filter(thread => thread.status === 'outdated' && thread.state === 'open')
 
   return (
-    <div className="gdr-shell">
-      <div className="gdr-toolbar">
-        <span className="gdr-refs">
+    <div className="gr-shell">
+      <div className="gr-toolbar">
+        <span className="gr-refs">
           <code>{state.refs.baseLabel}</code> → <code>{state.refs.headLabel}</code>
         </span>
-        <span className="gdr-spacer" />
-        <div className="gdr-modes">
+        <span className="gr-spacer" />
+        <div className="gr-modes">
           <button aria-pressed={mode === 'guided'} onClick={() => setMode('guided')}>
             Guided
           </button>
@@ -67,10 +67,10 @@ export const App = () => {
         </div>
       </div>
 
-      <div className="gdr-main" ref={scroller}>
-        {chapters.length === 0 && <div className="gdr-empty">No changes between these commits.</div>}
+      <div className="gr-main" ref={scroller}>
+        {chapters.length === 0 && <div className="gr-empty">No changes between these commits.</div>}
         {chapters.map(chapter => (
-          <section className="gdr-chapter" key={chapter.id}>
+          <section className="gr-chapter" key={chapter.id}>
             <ChapterSummary
               group={chapter.group}
               paths={chapter.files.map(pathOf)}
@@ -78,7 +78,7 @@ export const App = () => {
               reviewedBlobs={reviewedBlobs}
               onJumpToFile={jumpToFile}
             />
-            <div className="gdr-chapter-files">
+            <div className="gr-chapter-files">
               {chapter.files.map(file => {
                 const path = pathOf(file)
                 const meta = payload.files.find(f => f.path === path)
@@ -126,16 +126,16 @@ const ChapterSummary = ({
 }) => {
   const allReviewed = paths.length > 0 && reviewedCount(paths, files, reviewedBlobs) === paths.length
   return (
-  <div className="gdr-chapter-summary">
-    <div className="gdr-chapter-sticky">
+  <div className="gr-chapter-summary">
+    <div className="gr-chapter-sticky">
       {group && (
         <>
-          <div className="gdr-group-title">{group.title}</div>
-          <div className="gdr-chapter-progress">
+          <div className="gr-group-title">{group.title}</div>
+          <div className="gr-chapter-progress">
             <span>
               {String(reviewedCount(paths, files, reviewedBlobs)).padStart(2, '0')} / {String(paths.length).padStart(2, '0')}
             </span>
-            <label className="gdr-reviewed">
+            <label className="gr-reviewed">
               <input
                 type="checkbox"
                 checked={allReviewed}
@@ -150,7 +150,7 @@ const ChapterSummary = ({
               Reviewed
             </label>
           </div>
-          <div className="gdr-group-summary">{group.summary}</div>
+          <div className="gr-group-summary">{group.summary}</div>
         </>
       )}
       <FileList paths={paths} files={files} reviewedBlobs={reviewedBlobs} onSelect={onJumpToFile} />
@@ -161,7 +161,7 @@ const ChapterSummary = ({
 
 /** OutdatedThreads lists threads whose code has moved on, so they are never silently lost. */
 const OutdatedThreads = ({ threads }: { threads: Thread[] }) => (
-  <div className="gdr-outdated-list">
+  <div className="gr-outdated-list">
     <h3>Outdated comments ({threads.length})</h3>
     {threads.map(thread => (
       <CommentThread key={thread.id} thread={thread} />
@@ -265,7 +265,7 @@ function useScrollAnchor(scroller: React.RefObject<HTMLDivElement | null>, chapt
 
 /** topVisibleFile records which file section is at the top of the viewport, and its offset. */
 function topVisibleFile(scroller: HTMLDivElement): { id: string; offset: number } | null {
-  for (const section of Array.from(scroller.querySelectorAll<HTMLElement>('.gdr-file'))) {
+  for (const section of Array.from(scroller.querySelectorAll<HTMLElement>('.gr-file'))) {
     const offset = section.getBoundingClientRect().top - scroller.getBoundingClientRect().top
     if (offset + section.offsetHeight > 0) {
       return { id: section.id, offset }

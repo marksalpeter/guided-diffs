@@ -12,22 +12,22 @@ export const FileList = ({
   reviewedBlobs: Record<string, string>
   onSelect: (path: string) => void
 }) => (
-  <div className="gdr-filelist">
+  <div className="gr-filelist">
     {paths.map(path => {
       const meta = files.find(file => file.path === path)
       return (
         <button
           key={path}
-          className={`gdr-filecard${isReviewed(reviewedBlobs[path], meta?.newBlob) ? ' reviewed' : ''}`}
+          className={`gr-filecard${isReviewed(reviewedBlobs[path], meta?.newBlob) ? ' reviewed' : ''}`}
           title={path}
           onClick={() => onSelect(path)}
         >
           <FileGlyph />
-          <span className="gdr-filecard-name">{basename(path)}</span>
-          <span className="gdr-filecard-dir">{dirname(path)}</span>
-          <span className="gdr-spacer" />
-          {meta && meta.additions > 0 && <span className="gdr-stat-add">+{meta.additions}</span>}
-          {meta && meta.deletions > 0 && <span className="gdr-stat-del">−{meta.deletions}</span>}
+          <span className="gr-filecard-name">{basename(path)}</span>
+          <span className="gr-filecard-dir">{dirname(path)}</span>
+          <span className="gr-spacer" />
+          {meta && meta.additions > 0 && <span className="gr-stat-add">+{meta.additions}</span>}
+          {meta && meta.deletions > 0 && <span className="gr-stat-del">−{meta.deletions}</span>}
         </button>
       )
     })}
@@ -46,7 +46,7 @@ export function isReviewed(markedBlob: string | undefined, currentBlob: string |
 
 /** FileGlyph is the document icon each card leads with. */
 const FileGlyph = () => (
-  <svg className="gdr-filecard-icon" width="12" height="14" viewBox="0 0 12 14" aria-hidden="true">
+  <svg className="gr-filecard-icon" width="12" height="14" viewBox="0 0 12 14" aria-hidden="true">
     <path
       d="M1 1h6l4 4v8H1z"
       fill="none"

@@ -45,17 +45,17 @@ export const FileDiff = ({
   const hidden = reviewed || collapsed
 
   return (
-    <section className={`gdr-file${reviewed ? ' reviewed' : ''}`} id={fileAnchorId(pathOf(file))}>
-      <header className="gdr-file-header">
-        <button className="gdr-caret" aria-label={hidden ? 'Expand' : 'Collapse'} onClick={onToggleCollapsed}>
+    <section className={`gr-file${reviewed ? ' reviewed' : ''}`} id={fileAnchorId(pathOf(file))}>
+      <header className="gr-file-header">
+        <button className="gr-caret" aria-label={hidden ? 'Expand' : 'Collapse'} onClick={onToggleCollapsed}>
           {hidden ? '▸' : '▾'}
         </button>
         <strong>{displayPath(file)}</strong>
-        <span className="gdr-spacer" />
-        {meta && <span className="gdr-stat-add">+{meta.additions}</span>}
-        {meta && <span className="gdr-stat-del">−{meta.deletions}</span>}
-        {threads.length > 0 && <span className="gdr-badge">{threads.length}</span>}
-        <label className="gdr-reviewed">
+        <span className="gr-spacer" />
+        {meta && <span className="gr-stat-add">+{meta.additions}</span>}
+        {meta && <span className="gr-stat-del">−{meta.deletions}</span>}
+        {threads.length > 0 && <span className="gr-badge">{threads.length}</span>}
+        <label className="gr-reviewed">
           <input type="checkbox" checked={reviewed} onChange={onToggleReviewed} />
           Reviewed
         </label>
@@ -129,7 +129,7 @@ function useWidgets(
         }
 
         widgets[key] = (
-          <div className="gdr-widget">
+          <div className="gr-widget">
             {onLine.map(thread => (
               <CommentThread key={thread.id} thread={thread} />
             ))}
@@ -206,7 +206,7 @@ export function fileAnchorId(path: string): string {
 }
 
 /** BinaryNote stands in for a diff that cannot be rendered or commented on. */
-const BinaryNote = () => <div className="gdr-file-note">Binary file — not shown.</div>
+const BinaryNote = () => <div className="gr-file-note">Binary file — not shown.</div>
 
 /** PendingComment is the line the reviewer is currently composing against. */
 interface PendingComment {

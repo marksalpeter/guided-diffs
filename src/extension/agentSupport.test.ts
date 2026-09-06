@@ -15,7 +15,7 @@ describe('agent support', () => {
   let dir: string
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'gdr-agent-'))
+    dir = await mkdtemp(join(tmpdir(), 'gr-agent-'))
   })
 
   afterEach(async () => {
@@ -34,8 +34,8 @@ describe('agent support', () => {
   })
 
   it('records the editor uri scheme so the cli can deep-link back', async () => {
-    const path = await writeShim(dir, '/usr/bin/code', '/ext/dist/cli.js', { GDR_URI_SCHEME: 'cursor' })
-    expect(await readFile(path, 'utf8')).toContain("GDR_URI_SCHEME='cursor' ELECTRON_RUN_AS_NODE=1")
+    const path = await writeShim(dir, '/usr/bin/code', '/ext/dist/cli.js', { REVIEW_URI_SCHEME: 'cursor' })
+    expect(await readFile(path, 'utf8')).toContain("REVIEW_URI_SCHEME='cursor' ELECTRON_RUN_AS_NODE=1")
   })
 
   it('quotes paths containing spaces', async () => {
@@ -84,7 +84,7 @@ describe('agent support', () => {
     })
 
     const skill = await readFile(join(dir, skillRelativePath), 'utf8')
-    expect(skill).toContain('name: guided-diffs')
+    expect(skill).toContain('name: guided-reviews')
     expect(skill).toContain('You cannot resolve threads')
     expect(skill).toContain(`${shimRelativePath} comments`)
     expect(skill).toContain(`${shimRelativePath} reply`)

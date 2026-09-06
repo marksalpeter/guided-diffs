@@ -30,7 +30,7 @@ jobs:
             echo "::error::tag ${GITHUB_REF_NAME} does not match package.json version ${declared}"
             exit 1
           fi
-          echo "VSIX=guided-diffs-${version}.vsix" >> "$GITHUB_ENV"
+          echo "VSIX=guided-reviews-${version}.vsix" >> "$GITHUB_ENV"
 
       - run: npm ci
 
@@ -56,6 +56,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: guided-diffs-vsix
+          name: guided-reviews-vsix
           path: ${{ env.VSIX }}
           if-no-files-found: error

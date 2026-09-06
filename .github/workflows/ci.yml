@@ -37,11 +37,11 @@ jobs:
 
       # packaging in CI catches .vscodeignore and manifest breakage before merge
       - name: Package the extension
-        run: npx vsce package --out guided-diffs-pr.vsix
+        run: npx vsce package --out guided-reviews-pr.vsix
 
       - uses: actions/upload-artifact@v4
         with:
-          name: guided-diffs-vsix
-          path: guided-diffs-pr.vsix
+          name: guided-reviews-vsix
+          path: guided-reviews-pr.vsix
           if-no-files-found: error
           retention-days: 14

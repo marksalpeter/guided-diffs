@@ -21,7 +21,7 @@ describe('ReviewService', () => {
   const writeLines = (lines: string[]) => writeFile(join(dir, 'a.ts'), `${lines.join('\n')}\n`)
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'gdr-review-'))
+    dir = await mkdtemp(join(tmpdir(), 'gr-review-'))
     exec = new SystemExec(dir)
     await exec.run('git', ['init', '-q', '-b', 'main'])
     await exec.run('git', ['config', 'user.email', 'test@example.com'])

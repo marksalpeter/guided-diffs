@@ -15,12 +15,12 @@ await new Promise(r=>server.listen(4323,r))
 const browser=await chromium.launch({args:['--no-sandbox']})
 const page=await browser.newPage({viewport:{width:1440,height:900}})
 await page.goto('http://localhost:4323/h',{waitUntil:'networkidle'})
-await page.waitForSelector('.gdr-file')
+await page.waitForSelector('.gr-file')
 const probe = async (scrollTop) => page.evaluate((top) => {
-  const main = document.querySelector('.gdr-main')
+  const main = document.querySelector('.gr-main')
   main.scrollTop = top
-  const first = document.querySelector('.gdr-chapter-sticky')
-  const cell = document.querySelector('.gdr-chapter-summary')
+  const first = document.querySelector('.gr-chapter-sticky')
+  const cell = document.querySelector('.gr-chapter-summary')
   const mainTop = main.getBoundingClientRect().top
   return {
     scrollTop: main.scrollTop,

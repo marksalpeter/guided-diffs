@@ -11,14 +11,14 @@ export const CommentThread = ({ thread }: { thread: Thread }) => {
   const resolved = thread.state === 'resolved'
 
   return (
-    <div className={`gdr-thread${resolved ? ' resolved' : ''}`}>
+    <div className={`gr-thread${resolved ? ' resolved' : ''}`}>
       <ResolveTick
         resolved={resolved}
         onToggle={() => post({ type: resolved ? 'reopen' : 'resolve', threadId: thread.id })}
       />
 
       {resolved && !expanded ? (
-        <button className="gdr-thread-collapsed" onClick={() => setExpanded(true)}>
+        <button className="gr-thread-collapsed" onClick={() => setExpanded(true)}>
           {preview(thread)}
         </button>
       ) : (
@@ -40,7 +40,7 @@ export const CommentThread = ({ thread }: { thread: Thread }) => {
 /** ResolveTick is the checkmark in the thread's top corner. */
 const ResolveTick = ({ resolved, onToggle }: { resolved: boolean; onToggle: () => void }) => (
   <button
-    className={`gdr-tick${resolved ? ' checked' : ''}`}
+    className={`gr-tick${resolved ? ' checked' : ''}`}
     role="checkbox"
     aria-checked={resolved}
     aria-label={resolved ? 'Reopen thread' : 'Resolve thread'}
@@ -53,8 +53,8 @@ const ResolveTick = ({ resolved, onToggle }: { resolved: boolean; onToggle: () =
 
 /** CommentBody renders one message, labelling only the agent. */
 const CommentBody = ({ comment }: { comment: Comment }) => (
-  <div className="gdr-comment">
-    {comment.author === 'agent' && <span className="gdr-author">agent</span>}
+  <div className="gr-comment">
+    {comment.author === 'agent' && <span className="gr-author">agent</span>}
     {comment.body}
   </div>
 )
@@ -62,8 +62,8 @@ const CommentBody = ({ comment }: { comment: Comment }) => (
 /** OutdatedNotice shows the code a thread was written against once that code has moved on. */
 const OutdatedNotice = ({ thread }: { thread: Thread }) => (
   <>
-    <span className="gdr-badge">outdated</span>
-    {thread.anchor.kind === 'line' && thread.anchor.text && <div className="gdr-quote">{thread.anchor.text}</div>}
+    <span className="gr-badge">outdated</span>
+    {thread.anchor.kind === 'line' && thread.anchor.text && <div className="gr-quote">{thread.anchor.text}</div>}
   </>
 )
 
@@ -78,7 +78,7 @@ const Composer = ({ placeholder, onSubmit }: { placeholder: string; onSubmit: (b
   }
 
   return (
-    <div className="gdr-composer">
+    <div className="gr-composer">
       <textarea
         rows={draft ? 3 : 1}
         value={draft}
@@ -107,8 +107,8 @@ export const NewCommentBox = ({ onSubmit, onCancel }: { onSubmit: (body: string)
   }
 
   return (
-    <div className="gdr-thread">
-      <div className="gdr-composer">
+    <div className="gr-thread">
+      <div className="gr-composer">
         <textarea
           autoFocus
           rows={3}

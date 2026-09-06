@@ -10,7 +10,7 @@ describe('Git', () => {
   let git: Git
 
   beforeAll(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'gdr-git-'))
+    dir = await mkdtemp(join(tmpdir(), 'gr-git-'))
     const exec = new SystemExec(dir)
     await exec.run('git', ['init', '-q', '-b', 'main'])
     await exec.run('git', ['config', 'user.email', 'test@example.com'])

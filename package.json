@@ -1,13 +1,13 @@
 {
-  "name": "guided-diffs",
-  "displayName": "Guided Diffs",
+  "name": "guided-reviews",
+  "displayName": "Guided Reviews",
   "description": "Review your own commits locally, with an AI-guided narrative and comment threads a coding agent can read and reply to.",
   "version": "0.1.0",
   "publisher": "marksalpeter",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/marksalpeter/guided-diffs.git"
+    "url": "https://github.com/marksalpeter/guided-reviews.git"
   },
   "engines": {
     "node": ">=20",
@@ -17,9 +17,10 @@
     "SCM Providers",
     "Other"
   ],
+  "icon": "media/icon.png",
   "main": "./dist/extension.js",
   "bin": {
-    "gdr": "./dist/cli.js"
+    "review": "./dist/cli.js"
   },
   "activationEvents": [
     "onStartupFinished",
@@ -28,45 +29,45 @@
   "contributes": {
     "commands": [
       {
-        "command": "guidedDiffs.reviewBranch",
+        "command": "guidedReviews.reviewBranch",
         "title": "Review Branch",
-        "category": "Guided Diffs"
+        "category": "Guided Reviews"
       },
       {
-        "command": "guidedDiffs.compareCommits",
+        "command": "guidedReviews.compareCommits",
         "title": "Compare Two Commits",
-        "category": "Guided Diffs"
+        "category": "Guided Reviews"
       },
       {
-        "command": "guidedDiffs.installAgentSupport",
+        "command": "guidedReviews.installAgentSupport",
         "title": "Install Claude Code Skill and CLI",
-        "category": "Guided Diffs"
+        "category": "Guided Reviews"
       },
       {
-        "command": "guidedDiffs.deleteReview",
+        "command": "guidedReviews.deleteReview",
         "title": "Delete Review",
-        "category": "Guided Diffs"
+        "category": "Guided Reviews"
       }
     ],
     "configuration": {
-      "title": "Guided Diffs",
+      "title": "Guided Reviews",
       "properties": {
-        "guidedDiffs.defaultBranch": {
+        "guidedReviews.defaultBranch": {
           "type": "string",
           "default": "",
           "description": "Override the detected default branch (e.g. 'main'). Empty means auto-detect."
         },
-        "guidedDiffs.claudePath": {
+        "guidedReviews.claudePath": {
           "type": "string",
           "default": "claude",
           "description": "Path to the Claude Code CLI used to generate guided reviews."
         },
-        "guidedDiffs.model": {
+        "guidedReviews.model": {
           "type": "string",
           "default": "claude-opus-5",
           "description": "Model passed to Claude Code when generating a guided review."
         },
-        "guidedDiffs.autoGenerateGuide": {
+        "guidedReviews.autoGenerateGuide": {
           "type": "boolean",
           "default": true,
           "description": "Generate the guided review automatically when a review is opened."

@@ -82,7 +82,7 @@ describe('renderThreads', () => {
 
   it('tells the agent how to reply and that it cannot resolve', () => {
     const out = renderThreads(review, [lineThread()])
-    expect(out).toContain('gdr reply <thread-id>')
+    expect(out).toContain('review reply <thread-id>')
     expect(out).toContain('only the human reviewer can')
   })
 

@@ -41,7 +41,7 @@ export class Git {
         return candidate
       }
     }
-    throw new Error('could not determine a default branch; set guidedDiffs.defaultBranch')
+    throw new Error('could not determine a default branch; set guidedReviews.defaultBranch')
   }
 
   /** mergeBase returns the common ancestor of two revisions. */

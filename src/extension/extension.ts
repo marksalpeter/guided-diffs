@@ -2,7 +2,6 @@ import * as vscode from 'vscode'
 import { Git } from '../core/git.js'
 import { ReviewService } from '../core/review.js'
 import { installAgentSupport } from './agentSupport.js'
-import { pickRevision } from './picker.js'
 import { ReviewPanel, viewType } from './reviewPanel.js'
 
 /** activate registers the commands and restores any review tabs from the previous session. */
@@ -10,8 +9,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const assets = vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('guidedReviews.reviewBranch', () => run(assets, reviewBranch)),
-    vscode.commands.registerCommand('guidedReviews.compareCommits', () => run(assets, compareCommits)),
+    vscode.commands.registerCommand('guidedReviews.openReview', () => run(assets, openReview)),
     vscode.commands.registerCommand('guidedReviews.deleteReview', () => run(assets, deleteReview)),
     vscode.commands.registerCommand('guidedReviews.installAgentSupport', () =>
       run(assets, async service => {
@@ -27,11 +25,10 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     }),
     vscode.window.registerWebviewPanelSerializer(viewType, {
-      async deserializeWebviewPanel(panel, state: unknown) {
-        const key = (state as { key?: string } | undefined)?.key ?? panel.title.replace(/^Review /, '')
+      async deserializeWebviewPanel(panel) {
         const service = await currentService()
         if (service) {
-          ReviewPanel.adopt(panel, service, key, assets)
+          ReviewPanel.adopt(panel, service, await service.defaultSelection(), assets)
         }
       },
     }),
@@ -43,30 +40,17 @@ export function activate(context: vscode.ExtensionContext): void {
 /** deactivate is a no-op; every disposable is registered on the context. */
 export function deactivate(): void {}
 
-/** reviewBranch opens or advances the review for the checked-out branch. */
-async function reviewBranch(service: ReviewService, assets: vscode.Uri): Promise<void> {
-  ReviewPanel.show(service, await service.openBranchReview(), assets)
+/** openReview launches straight into the panel; the toolbar, not a quick pick, chooses the commits. */
+async function openReview(service: ReviewService, assets: vscode.Uri): Promise<void> {
+  ReviewPanel.show(service, await service.defaultSelection(), assets)
 }
 
-/** compareCommits opens a frozen review between two revisions chosen by the user. */
-async function compareCommits(service: ReviewService, assets: vscode.Uri): Promise<void> {
-  const base = await pickRevision(service.repo, 'Compare from (base)')
-  if (!base) {
-    return
-  }
-  const head = await pickRevision(service.repo, 'Compare to (head)')
-  if (!head) {
-    return
-  }
-  ReviewPanel.show(service, await service.openRangeReview(base, head), assets)
-}
-
-/** openFromUri opens the branch review for the repository a `review review` deep link names. */
+/** openFromUri opens the review for the repository a `review` deep link names. */
 async function openFromUri(uri: vscode.Uri, assets: vscode.Uri): Promise<void> {
   const repo = new URLSearchParams(uri.query).get('repo') ?? ''
   // the link can land in any window running the extension, so prefer the folder it asked for
   const folder = vscode.workspace.workspaceFolders?.find(candidate => repo.startsWith(candidate.uri.fsPath))
-  await run(assets, reviewBranch, { service: folder ? await serviceFor(folder) : undefined })
+  await run(assets, openReview, { service: folder ? await serviceFor(folder) : undefined })
 }
 
 /** deleteReview removes one review's log after confirmation. */

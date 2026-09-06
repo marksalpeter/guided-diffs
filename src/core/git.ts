@@ -1,5 +1,5 @@
 import { SystemExec, type Exec } from './exec.js'
-import type { ChangedFile, FileStatus } from './types.js'
+import type { BranchSummary, ChangedFile, CommitSummary, FileStatus, Timeline } from './types.js'
 
 /** storeDir is the review store, excluded from every diff so a review never reviews itself. */
 export const storeDir = '.guided-review'
@@ -116,10 +116,57 @@ export class Git {
     return this.git(['cat-file', 'blob', blob])
   }
 
+  /** defaultBranchName is the default branch without its remote prefix, for display and fork labels. */
+  async defaultBranchName(): Promise<string> {
+    const full = await this.defaultBranch()
+    return full.replace(/^[^/]+\//, '')
+  }
+
   /** localBranches lists every local branch name, current branch first. */
   async localBranches(): Promise<string[]> {
     const out = await this.git(['for-each-ref', '--format=%(refname:short)', 'refs/heads'])
     return out.split('\n').map(l => l.trim()).filter(Boolean)
+  }
+
+  /** branches lists local branches for the picker: the default branch first, then by newest commit. */
+  async branches(): Promise<BranchSummary[]> {
+    const defaultName = await this.defaultBranchName()
+    const out = await this.git([
+      'for-each-ref',
+      '--sort=-committerdate',
+      '--format=%(refname:short)%00%(objectname)%00%(committerdate:relative)',
+      'refs/heads',
+    ])
+    const rows = out
+      .split('\n')
+      .filter(Boolean)
+      .map(line => {
+        const [name = '', headSha = '', when = ''] = line.split('\0')
+        return { name, headSha, when, isDefault: name === defaultName }
+      })
+    const withCounts = await Promise.all(
+      rows.map(async row => ({ ...row, ahead: row.isDefault ? 0 : await this.aheadCount(defaultName, row.name) })),
+    )
+    // for-each-ref already sorted by recency; only the default branch jumps the queue
+    return [...withCounts.filter(row => row.isDefault), ...withCounts.filter(row => !row.isDefault)]
+  }
+
+  /** timeline is one branch's selectable history, flagging which commits postdate the fork. */
+  async timeline(branch: string, limit: number): Promise<Timeline> {
+    const forkedFrom = await this.defaultBranchName()
+    const isDefault = branch === forkedFrom
+    const forkSha = isDefault ? '' : await this.mergeBase(forkedFrom, branch)
+    // a set membership test, rather than log order, so a merged-in base commit cannot be miscoloured
+    const after = forkSha ? await this.shasBetween(forkSha, branch) : new Set<string>()
+    const out = await this.git(['log', `-${limit}`, '--topo-order', '--format=%H%x00%s%x00%an%x00%ar', branch])
+    const commits = out
+      .split('\n')
+      .filter(Boolean)
+      .map(line => {
+        const [sha = '', subject = '', author = '', when = ''] = line.split('\0')
+        return { sha, subject, author, when, afterFork: after.has(sha) }
+      })
+    return { branch, forkedFrom: isDefault ? '' : forkedFrom, forkSha, commits }
   }
 
   /** recentCommits lists the newest commits reachable from HEAD. */
@@ -132,6 +179,18 @@ export class Git {
         const [sha = '', subject = '', author = '', when = ''] = line.split('\0')
         return { sha, subject, author, when }
       })
+  }
+
+  /** aheadCount is how many commits a branch carries that its base does not. */
+  private async aheadCount(base: string, branch: string): Promise<number> {
+    const out = await this.tryGit(['rev-list', '--count', `${base}..${branch}`])
+    return out ? Number(out.trim()) || 0 : 0
+  }
+
+  /** shasBetween collects every commit reachable from head but not from base. */
+  private async shasBetween(base: string, head: string): Promise<Set<string>> {
+    const out = await this.tryGit(['rev-list', `${base}..${head}`])
+    return new Set((out ?? '').split('\n').filter(Boolean))
   }
 
   /** git runs a git subcommand in the repository root. */
@@ -235,14 +294,6 @@ function toFileStatus(code: string): FileStatus {
 /** isNullSha reports whether a raw-diff sha is git's all-zero placeholder. */
 function isNullSha(sha: string): boolean {
   return /^0+$/.test(sha)
-}
-
-/** CommitSummary is one entry in the commit picker. */
-export interface CommitSummary {
-  sha: string
-  subject: string
-  author: string
-  when: string
 }
 
 /** RawEntry is one parsed `git diff --raw` record before line counts are joined in. */

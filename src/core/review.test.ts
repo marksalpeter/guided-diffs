@@ -40,6 +40,89 @@ describe('ReviewService', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
+  describe('selection', () => {
+    it('opens a feature branch on its head against the commit it forked from', async () => {
+      const selection = await service.defaultSelection()
+
+      expect(selection).toEqual({
+        branch: 'feature',
+        baseSha: await service.repo.mergeBase('main', 'feature'),
+        headSha: await service.repo.revParse('feature'),
+      })
+    })
+
+    it('asks for a target branch when the default branch is checked out', async () => {
+      await exec.run('git', ['checkout', '-q', 'main'])
+
+      expect(await service.defaultSelection()).toBeNull()
+    })
+
+    it('snaps the base to the fork point when a target branch is chosen', async () => {
+      await exec.run('git', ['checkout', '-q', 'main'])
+      await writeLines(['one', 'two', 'three', 'main moved on'])
+      await commit('main advances')
+
+      const selection = await service.selectionForBranch('feature')
+
+      expect(selection.baseSha).toBe(await service.repo.mergeBase('main', 'feature'))
+      expect(selection.headSha).toBe(await service.repo.revParse('feature'))
+    })
+
+    it('keys the branch review by branch name when the pair is the canonical one', async () => {
+      const selection = await service.defaultSelection()
+
+      expect(await service.openSelection(selection!)).toBe('feature')
+    })
+
+    it('keys an ad-hoc pair by its commits rather than the branch', async () => {
+      const selection = await service.defaultSelection()
+      const key = await service.openSelection({ ...selection!, baseSha: await service.repo.revParse('main~0') })
+
+      const moved = { ...selection!, baseSha: await service.repo.revParse('feature') }
+      expect(await service.openSelection(moved)).not.toBe(key)
+      expect(await service.openSelection(moved)).toContain('..')
+    })
+
+    it('keeps each pair its own event log', async () => {
+      const selection = (await service.defaultSelection())!
+      const branchKey = await service.openSelection(selection)
+      await service.startThread(branchKey, 'a.ts', 'new', 4, 'on the branch review')
+
+      const pairKey = await service.openSelection({ ...selection, baseSha: await service.repo.revParse('feature') })
+
+      expect((await service.load(branchKey)).state.threads).toHaveLength(1)
+      expect((await service.load(pairKey)).state.threads).toHaveLength(0)
+    })
+
+    it('derives the base branch label from whichever branch owns the base commit', async () => {
+      const selection = (await service.defaultSelection())!
+
+      const atFork = await service.selector(selection)
+      expect(atFork.baseBranch).toBe('main')
+
+      const aboveFork = await service.selector({ ...selection, baseSha: await service.repo.revParse('feature') })
+      expect(aboveFork.baseBranch).toBe('feature')
+    })
+
+    it('offers no timeline until a target branch is chosen', async () => {
+      await exec.run('git', ['checkout', '-q', 'main'])
+      const selector = await service.selector(null)
+
+      expect(selector.timeline).toBeUndefined()
+      expect(selector.baseBranch).toBe('main')
+      expect(selector.baseSha).toBe(await service.repo.revParse('main'))
+      expect(selector.baseSha).toBe(selector.headSha)
+    })
+
+    it('lists the default branch first in the branch picker', async () => {
+      const selector = await service.selector(await service.defaultSelection())
+
+      expect(selector.branches[0]?.name).toBe('main')
+      expect(selector.branches[0]?.isDefault).toBe(true)
+      expect(selector.branches.map(branch => branch.name)).toContain('feature')
+    })
+  })
+
   it('creates a branch review pinned to the merge base', async () => {
     const key = await service.openBranchReview()
     const { state } = await service.load(key)

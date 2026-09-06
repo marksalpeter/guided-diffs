@@ -1,16 +1,22 @@
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { chmod, lstat, mkdir, readFile, readlink, rm, symlink, writeFile } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 import { storeDir } from '../core/git.js'
 import { ReviewStore } from '../core/store.js'
 
 /** shimRelativePath is where the agent-facing CLI launcher is written, inside the ignored store. */
 export const shimRelativePath = `${storeDir}/bin/review`
 
-/** skillRelativePath is the Claude Code skill the agent discovers by filesystem. */
-export const skillRelativePath = '.claude/skills/guided-reviews/SKILL.md'
+/** skillDirRelativePath is the Agent Skills standard directory, read natively by every agent but Claude Code. */
+const skillDirRelativePath = '.agents/skills/guided-reviews'
+
+/** skillRelativePath is the skill an agent discovers by filesystem. */
+export const skillRelativePath = `${skillDirRelativePath}/SKILL.md`
+
+/** claudeSkillRelativePath is the Claude Code skill directory, linked to the real one. */
+export const claudeSkillRelativePath = '.claude/skills/guided-reviews'
 
 /** skillVersion is bumped whenever the skill's contract changes, forcing a rewrite. */
-export const skillVersion = 2
+export const skillVersion = 3
 
 /** installAgentSupport writes the shim and skill, and hides the skill from git for this clone only. */
 export async function installAgentSupport(options: InstallOptions): Promise<void> {
@@ -18,7 +24,8 @@ export async function installAgentSupport(options: InstallOptions): Promise<void
   await new ReviewStore(options.repoRoot).ensureStoreDir()
   await writeShim(options.repoRoot, options.nodePath, options.cliPath, { REVIEW_URI_SCHEME: options.uriScheme })
   await writeSkill(options.repoRoot)
-  await excludeFromGit(options.gitCommonDir, skillRelativePath)
+  await excludeFromGit(options.gitCommonDir, skillDirRelativePath)
+  await excludeFromGit(options.gitCommonDir, claudeSkillRelativePath)
 }
 
 /** writeShim drops an executable launcher that runs the bundled CLI through VS Code's own Node. */
@@ -38,6 +45,7 @@ export async function writeSkill(repoRoot: string): Promise<string> {
   const target = join(repoRoot, skillRelativePath)
   await mkdir(dirname(target), { recursive: true })
   await writeFile(target, skillBody())
+  await linkClaudeSkill(repoRoot)
   return target
 }
 
@@ -53,6 +61,35 @@ export async function excludeFromGit(gitCommonDir: string, path: string): Promis
   await writeFile(target, `${existing}${separator}${path}\n`)
 }
 
+/** linkClaudeSkill points Claude Code's skill directory at the real skill, copying it where symlinks are refused. */
+async function linkClaudeSkill(repoRoot: string): Promise<void> {
+  const link = join(repoRoot, claudeSkillRelativePath)
+  // relative so the link survives the repo being moved or cloned elsewhere
+  const target = relative(dirname(claudeSkillRelativePath), skillDirRelativePath)
+  if (await linksTo(link, target)) {
+    return
+  }
+  await rm(link, { recursive: true, force: true })
+  await mkdir(dirname(link), { recursive: true })
+  try {
+    await symlink(target, link, 'dir')
+  } catch {
+    // windows without developer mode refuses symlinks, so leave a real copy behind
+    await mkdir(link, { recursive: true })
+    await writeFile(join(link, 'SKILL.md'), skillBody())
+  }
+}
+
+/** linksTo reports whether path is itself a symlink already pointing at target. */
+async function linksTo(path: string, target: string): Promise<boolean> {
+  try {
+    const info = await lstat(path)
+    return info.isSymbolicLink() && (await readlink(path)) === target
+  } catch {
+    return false
+  }
+}
+
 /** skillBody is the skill document written into the workspace. */
 function skillBody(): string {
   return `---
@@ -65,7 +102,7 @@ description: |
   flagged.
 ---
 
-# Guided Reviews review comments
+# Guided Reviews comments
 
 The human reviews your commits in VS Code and leaves comment threads. Those
 threads are **not** in git and **not** greppable — read them through the CLI.
@@ -87,7 +124,7 @@ Resolved threads are never shown. If the command says no review has been
 opened, open one yourself:
 
 \`\`\`sh
-${shimRelativePath} review
+${shimRelativePath} open
 \`\`\`
 
 That opens the review panel on the current branch in the editor, generating the

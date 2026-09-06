@@ -9,7 +9,7 @@ import { noThreadsMessage, renderThreads } from './render.js'
 /** usage is printed for `--help` and for any unrecognised invocation. */
 const usage = `review — read and reply to guided review comments
 
-  review review                             open the review panel for the current branch
+  review open                               open the review panel for the current branch
   review comments [--unanswered] [--json]   list unresolved threads for the current review
   review reply <thread-id> -m <message>     reply to a thread
 
@@ -20,7 +20,7 @@ export async function main(argv: readonly string[], out: Writer = process.stdout
   const [command, ...rest] = argv
   try {
     switch (command) {
-      case 'review':
+      case 'open':
         return await runReview(out)
       case 'comments':
         return await runComments(rest, out)

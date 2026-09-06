@@ -29,24 +29,27 @@
   "contributes": {
     "commands": [
       {
-        "command": "guidedReviews.reviewBranch",
-        "title": "Review Branch",
-        "category": "Guided Reviews"
-      },
-      {
-        "command": "guidedReviews.compareCommits",
-        "title": "Compare Two Commits",
+        "command": "guidedReviews.openReview",
+        "title": "Open Review",
         "category": "Guided Reviews"
       },
       {
         "command": "guidedReviews.installAgentSupport",
-        "title": "Install Claude Code Skill and CLI",
+        "title": "Install Agent Skill and CLI",
         "category": "Guided Reviews"
       },
       {
         "command": "guidedReviews.deleteReview",
         "title": "Delete Review",
         "category": "Guided Reviews"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "guidedReviews.openReview",
+        "key": "alt+shift+r",
+        "mac": "alt+shift+r",
+        "when": "!terminalFocus"
       }
     ],
     "configuration": {

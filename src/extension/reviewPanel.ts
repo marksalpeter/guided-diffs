@@ -1,28 +1,30 @@
 import * as vscode from 'vscode'
 import { randomBytes } from 'node:crypto'
-import type { HostMessage, ViewMessage } from '../core/protocol.js'
 import { ClaudeCli } from '../core/guide.js'
-import { ReviewService } from '../core/review.js'
+import type { HostMessage, ReviewPayload, ViewMessage } from '../core/protocol.js'
+import { ReviewService, type Selection } from '../core/review.js'
 
 /** viewType identifies the panel for VS Code's tab restore. */
 export const viewType = 'guidedReviews.review'
 
-/** ReviewPanel hosts one review's webview and keeps it in step with the event log. */
+/** ReviewPanel hosts one repository's review and keeps it in step with the event log. */
 export class ReviewPanel {
   private static open = new Map<string, ReviewPanel>()
 
   private panel: vscode.WebviewPanel
   private service: ReviewService
-  private key: string
   private assets: vscode.Uri
+  private selection: Selection | null
+  /** key is the review the selection resolves to, empty until a target branch is chosen. */
+  private key = ''
   private disposables: vscode.Disposable[] = []
   private guideBusy = false
   private guideAttempted = false
 
-  private constructor(panel: vscode.WebviewPanel, service: ReviewService, key: string, assets: vscode.Uri) {
+  private constructor(panel: vscode.WebviewPanel, service: ReviewService, selection: Selection | null, assets: vscode.Uri) {
     this.panel = panel
     this.service = service
-    this.key = key
+    this.selection = selection
     this.assets = assets
 
     this.panel.webview.options = { enableScripts: true, localResourceRoots: [assets] }
@@ -32,37 +34,53 @@ export class ReviewPanel {
     this.panel.onDidDispose(() => this.dispose())
   }
 
-  /** show opens or focuses the panel for one review key. */
-  static show(service: ReviewService, key: string, assets: vscode.Uri): ReviewPanel {
-    const existing = ReviewPanel.open.get(key)
+  /** show opens or focuses this repository's panel on a selection. */
+  static show(service: ReviewService, selection: Selection | null, assets: vscode.Uri): ReviewPanel {
+    const existing = ReviewPanel.open.get(service.repo.repoRoot)
     if (existing) {
       existing.panel.reveal()
+      void existing.retarget(selection)
       return existing
     }
-    const panel = vscode.window.createWebviewPanel(viewType, `Review ${key}`, vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel(viewType, titleFor(selection), vscode.ViewColumn.Active, {
       enableScripts: true,
       retainContextWhenHidden: true,
     })
-    return ReviewPanel.adopt(panel, service, key, assets)
+    return ReviewPanel.adopt(panel, service, selection, assets)
   }
 
-  /** adopt attaches a panel VS Code restored on startup to a live review. */
-  static adopt(panel: vscode.WebviewPanel, service: ReviewService, key: string, assets: vscode.Uri): ReviewPanel {
-    const created = new ReviewPanel(panel, service, key, assets)
-    ReviewPanel.open.set(key, created)
-    void created.push()
+  /** adopt attaches a panel VS Code restored on startup to a live selection. */
+  static adopt(panel: vscode.WebviewPanel, service: ReviewService, selection: Selection | null, assets: vscode.Uri): ReviewPanel {
+    const created = new ReviewPanel(panel, service, selection, assets)
+    ReviewPanel.open.set(service.repo.repoRoot, created)
+    void created.retarget(selection)
     return created
   }
 
-  /** push sends the current review state to the webview. */
+  /** push sends the current selection and, once one exists, the review it resolves to. */
   async push(): Promise<void> {
     try {
-      const { state, files } = await this.service.load(this.key)
-      const diff = await this.service.repo.unifiedDiff(state.refs.baseSha, state.refs.headSha)
-      this.send({ type: 'review', payload: { state, files, diff, guideBusy: this.guideBusy } })
+      const selector = await this.service.selector(this.selection)
+      const payload: ReviewPayload = { selector, guideBusy: this.guideBusy }
+      if (this.key) {
+        const { state, files } = await this.service.load(this.key)
+        payload.review = { state, files, diff: await this.service.repo.unifiedDiff(state.refs.baseSha, state.refs.headSha) }
+      }
+      this.send({ type: 'review', payload })
     } catch (error) {
       this.send({ type: 'error', message: messageOf(error) })
     }
+  }
+
+  /** retarget re-points the open panel at another commit pair, replacing what it was showing. */
+  private async retarget(selection: Selection | null): Promise<void> {
+    this.selection = selection
+    // a different pair is a different event log, so the guide attempt has to be reconsidered
+    this.key = selection ? await this.service.openSelection(selection) : ''
+    this.guideAttempted = false
+    this.panel.title = titleFor(selection)
+    await this.push()
+    await this.autoGenerateGuide()
   }
 
   /** onMessage applies one webview action and pushes the resulting state back. */
@@ -72,6 +90,12 @@ export class ReviewPanel {
         case 'ready':
           await this.push()
           return await this.autoGenerateGuide()
+        case 'selectBranch':
+          return await this.retarget(await this.service.selectionForBranch(message.branch))
+        case 'selectBase':
+          return await this.retarget(this.selection && { ...this.selection, baseSha: message.sha })
+        case 'selectTarget':
+          return await this.retarget(this.selection && { ...this.selection, headSha: message.sha })
         case 'startThread':
           await this.service.startThread(this.key, message.path, message.side, message.line, message.body, message.endLine)
           break
@@ -113,7 +137,10 @@ export class ReviewPanel {
 
   /** autoGenerateGuide starts the first guide on its own, so the reader never has to ask for it. */
   private async autoGenerateGuide(): Promise<void> {
-    if (this.guideAttempted || this.guideBusy) {
+    if (!this.key || this.guideAttempted || this.guideBusy) {
+      return
+    }
+    if (!vscode.workspace.getConfiguration('guidedReviews').get('autoGenerateGuide', true)) {
       return
     }
     const { state } = await this.service.load(this.key)
@@ -126,7 +153,7 @@ export class ReviewPanel {
 
   /** generateGuide runs inference without blocking the diff, which is already on screen. */
   private async generateGuide(): Promise<void> {
-    if (this.guideBusy) {
+    if (this.guideBusy || !this.key) {
       return
     }
     this.guideAttempted = true
@@ -135,13 +162,17 @@ export class ReviewPanel {
 
     const settings = vscode.workspace.getConfiguration('guidedReviews')
     const runner = new ClaudeCli(settings.get('claudePath', 'claude'), settings.get('model', 'claude-opus-5'))
+    const generating = this.key
     try {
-      await this.service.generateGuide(this.key, runner)
+      await this.service.generateGuide(generating, runner)
     } catch {
       // the failure is already recorded in the log, and the toolbar renders it with a Retry button
     } finally {
       this.guideBusy = false
-      await this.push()
+      // the reader may have moved to another pair while this ran; only that pair's view is stale
+      if (this.key === generating) {
+        await this.push()
+      }
     }
   }
 
@@ -155,7 +186,8 @@ export class ReviewPanel {
 
   /** watchStore reloads the panel whenever the agent or another window appends to the log. */
   private watchStore(): vscode.Disposable {
-    const pattern = new vscode.RelativePattern(this.service.repo.repoRoot, `.guided-review/${this.key}.jsonl`)
+    // the whole store, not one file: the panel re-points between logs as the reader changes commits
+    const pattern = new vscode.RelativePattern(this.service.repo.repoRoot, '.guided-review/*.jsonl')
     const watcher = vscode.workspace.createFileSystemWatcher(pattern)
     const reload = debounce(() => void this.push(), 120)
     watcher.onDidChange(reload)
@@ -200,12 +232,17 @@ export class ReviewPanel {
 
   /** dispose tears the panel down and forgets it. */
   private dispose(): void {
-    ReviewPanel.open.delete(this.key)
+    ReviewPanel.open.delete(this.service.repo.repoRoot)
     for (const disposable of this.disposables) {
       disposable.dispose()
     }
     this.disposables = []
   }
+}
+
+/** titleFor names the tab after the branch under review, or invites one to be chosen. */
+function titleFor(selection: Selection | null): string {
+  return selection ? `Review ${selection.branch}` : 'Review'
 }
 
 /** debounce collapses a burst of file-watcher events into one reload. */

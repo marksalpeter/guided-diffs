@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtemp, rm, readFile, stat, writeFile, mkdir } from 'node:fs/promises'
+import { mkdtemp, rm, readFile, lstat, stat, symlink, writeFile, mkdir, readlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { SystemExec } from '../core/exec.js'
 import {
+  claudeSkillRelativePath,
   excludeFromGit,
   installAgentSupport,
   shimRelativePath,
@@ -20,6 +21,14 @@ describe('agent support', () => {
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true })
+  })
+
+  const install = (repoRoot: string) => installAgentSupport({
+    repoRoot,
+    gitCommonDir: join(repoRoot, '.git'),
+    nodePath: '/usr/bin/code',
+    cliPath: '/ext/dist/cli.js',
+    uriScheme: 'vscode',
   })
 
   it('writes an executable shim inside the ignored store', async () => {
@@ -101,6 +110,62 @@ describe('agent support', () => {
 
     const status = await exec.run('git', ['status', '--porcelain'])
     expect(status).not.toContain('.claude')
+    expect(status).not.toContain('.agents')
     expect(status).not.toContain('guided-review')
+  })
+
+  it('writes the real skill into the agent skills standard directory', async () => {
+    await install(dir)
+
+    expect(skillRelativePath).toBe('.agents/skills/guided-reviews/SKILL.md')
+    expect((await lstat(join(dir, skillRelativePath))).isFile()).toBe(true)
+  })
+
+  it('serves the same skill at the claude code path through a relative link', async () => {
+    await install(dir)
+
+    const link = join(dir, claudeSkillRelativePath)
+    expect((await lstat(link)).isSymbolicLink()).toBe(true)
+    expect(await readlink(link)).toBe('../../.agents/skills/guided-reviews')
+    expect(await readFile(join(link, 'SKILL.md'), 'utf8')).toBe(await readFile(join(dir, skillRelativePath), 'utf8'))
+  })
+
+  it('leaves a valid link when the install runs again', async () => {
+    await install(dir)
+    await install(dir)
+
+    const link = join(dir, claudeSkillRelativePath)
+    expect((await lstat(link)).isSymbolicLink()).toBe(true)
+    expect(await readFile(join(link, 'SKILL.md'), 'utf8')).toContain('name: guided-reviews')
+  })
+
+  it('replaces a real directory left at the claude code path', async () => {
+    const link = join(dir, claudeSkillRelativePath)
+    await mkdir(link, { recursive: true })
+    await writeFile(join(link, 'SKILL.md'), 'stale')
+
+    await install(dir)
+
+    expect((await lstat(link)).isSymbolicLink()).toBe(true)
+    expect(await readFile(join(link, 'SKILL.md'), 'utf8')).not.toBe('stale')
+  })
+
+  it('replaces a link pointing somewhere else', async () => {
+    const link = join(dir, claudeSkillRelativePath)
+    await mkdir(dirname(link), { recursive: true })
+    await symlink('../../elsewhere', link, 'dir')
+
+    await install(dir)
+
+    expect(await readlink(link)).toBe('../../.agents/skills/guided-reviews')
+  })
+
+  it('excludes both skill paths from git exactly once across activations', async () => {
+    await install(dir)
+    await install(dir)
+
+    const lines = (await readFile(join(dir, '.git/info/exclude'), 'utf8')).split('\n').map(l => l.trim())
+    expect(lines.filter(l => l === '.agents/skills/guided-reviews')).toHaveLength(1)
+    expect(lines.filter(l => l === claudeSkillRelativePath)).toHaveLength(1)
   })
 })

@@ -108,3 +108,35 @@ export interface ReviewState {
   /** reviewedBlobs maps a path to the blob the reviewer last ticked off. */
   reviewedBlobs: Record<string, string>
 }
+
+/** CommitSummary is one entry in the commit picker. */
+export interface CommitSummary {
+  sha: string
+  subject: string
+  author: string
+  when: string
+}
+
+/** BranchSummary is one row of the branch dropdown. */
+export interface BranchSummary {
+  name: string
+  headSha: string
+  when: string
+  /** ahead is how many commits the branch carries beyond the default branch. */
+  ahead: number
+  isDefault: boolean
+}
+
+/** TimelineCommit is one row of a commit dropdown; afterFork decides its colour. */
+export interface TimelineCommit extends CommitSummary {
+  afterFork: boolean
+}
+
+/** Timeline is the single ancestry both commit dropdowns select from. */
+export interface Timeline {
+  branch: string
+  /** forkedFrom names the branch this one grew out of, empty when the branch is itself the default. */
+  forkedFrom: string
+  forkSha: string
+  commits: TimelineCommit[]
+}

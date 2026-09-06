@@ -9,9 +9,10 @@ Everything is local. Review state never enters git and never reaches a server.
 
 ## What it does
 
-**Review your branch.** *Guided Reviews: Review Branch* diffs
-`merge-base(origin/<default>, HEAD)` → `HEAD` and opens it in a panel. The base is
-pinned when the review is created, so it does not drift when the default branch moves.
+**Review your branch.** The panel opens on the branch you are standing on: its head
+against the commit it forked from. The base is pinned when the review is created, so it
+does not drift when the default branch moves; commit again and the review follows your
+head.
 
 **Read the change as a narrative.** The guided view groups the diff into ordered
 chapters — the core of the change first, then its consequences, then glue and
@@ -40,6 +41,8 @@ the review's total diffstat while it runs. Narrow the panel and the two columns 
 each chapter's guide sits directly above the diffs it describes, and the file list goes
 away.
 
+![Before the guide lands: the left column is a flat list of changed files and the pill counts the whole diff while generation runs](media/screenshot-loading.png)
+
 **Hand them to an agent.** Tell Claude "address the guided review comments". It reads
 your threads, fixes the code, commits, and replies — and the replies appear in the
 panel live.
@@ -49,9 +52,78 @@ the line they now belong on, by exact hunk-offset arithmetic. A thread only goes
 `outdated` when its line is genuinely gone, and even then it stays visible with the
 code it was written against.
 
-**Compare any two commits.** *Guided Reviews: Compare Two Commits* takes any branch tip,
-tag, sha, or revspec like `HEAD~3`. That comparison is a full review too — guide,
-comments and all — frozen to the pair you picked.
+## Open a review
+
+Three ways in. An agent, or you, from a terminal:
+
+```sh
+.guided-review/bin/review open
+```
+
+The keybinding **⌥⇧R** (`alt+shift+r` on Linux and Windows), anywhere but a focused
+terminal.
+
+The command palette entry **Guided Reviews: Open Review**.
+
+All three do the same thing: they open the UI immediately. You are never asked to pick
+revisions first.
+
+- **On a feature branch** you land straight in the diff. Target is that branch's head,
+  base is the commit it forked from.
+- **On the default branch** there is no fork to diff against, so the pane asks you to
+  select a target branch and lists the branches off main — most recently committed
+  first, each with its commit count and how long ago it moved. Picking one sets the
+  target to that branch's head and the base to its fork point.
+
+The toolbar carries the selectors from then on:
+
+```
+[ main ▸ 3be4e1a ] ──→ [ feat/x ▸ head ]
+```
+
+The right-hand chip's branch dropdown is the only branch *choice*: it picks the branch
+under review and therefore the whole timeline. Both commit dropdowns select out of that
+one ancestry, so an incoherent pair cannot be built. The left-hand branch label is
+derived, never chosen — it names whichever branch owns the base commit you picked, so
+moving the base above the fork point re-labels it as the feature branch.
+
+Inside a commit dropdown, commits at or after the fork point are blue and the commits
+before it — the ones shared with the branch you forked from — are orange, with a marker
+ruling off where the branch diverged.
+
+Changing any selector re-points the same panel rather than opening a second tab, and
+each commit pair keeps its own comment log, so going back to a pair restores its
+threads. Nothing bleeds across pairs. **Guided Reviews: Delete Review** removes one
+pair's log.
+
+## Working with an agent
+
+On activation — and from **Guided Reviews: Install Agent Skill and CLI** — the extension
+writes two things into your workspace:
+
+- `.guided-review/bin/review` — the CLI, run through VS Code's own Node so it works with
+  no `node` on `PATH`.
+- `.agents/skills/guided-reviews/SKILL.md` — the skill that teaches an agent the commands
+  below. That is the Agent Skills standard directory, which Cursor and Codex read
+  natively; `.claude/skills/guided-reviews` is symlinked to it because Claude Code reads
+  only `.claude/skills`. Where the OS refuses symlinks, a second copy is written there
+  instead.
+
+Both are hidden from git: the store ignores itself, and both skill paths are added to
+`.git/info/exclude`, which is per-clone and never committed. Your `.gitignore` is not
+touched.
+
+```sh
+.guided-review/bin/review open                   # open the panel on this branch
+.guided-review/bin/review comments               # unresolved threads, as markdown
+.guided-review/bin/review comments --unanswered  # only ones the agent has not answered
+.guided-review/bin/review comments --json        # the same, structured
+.guided-review/bin/review reply <thread-id> -m "handled the null case in abc123"
+```
+
+There is deliberately **no resolve command**. An agent can reply; only the human
+reviewer decides whether their own comment was addressed. Resolved threads are never
+shown to the agent again.
 
 ## Install
 
@@ -66,31 +138,6 @@ The guided review shells out to the `claude` CLI. Point `guidedReviews.claudePat
 if it is not on your `PATH`. Everything else works without it — a failed or missing
 guide leaves a Retry button in the toolbar, with the diff fully usable. A guide that
 classifies nothing is treated as a failure rather than shown as an empty result.
-
-## For agents
-
-On activation the extension writes two things into your workspace:
-
-- `.guided-review/bin/review` — the CLI, run through VS Code's own Node so it works with
-  no `node` on `PATH`.
-- `.claude/skills/guided-reviews/SKILL.md` — the skill that teaches Claude Code the
-  commands below.
-
-Both are hidden from git: the store ignores itself, and the skill is added to
-`.git/info/exclude`, which is per-clone and never committed. Your `.gitignore` is not
-touched.
-
-```sh
-.guided-review/bin/review review                 # open the panel on this branch
-.guided-review/bin/review comments               # unresolved threads, as markdown
-.guided-review/bin/review comments --unanswered  # only ones you have not answered
-.guided-review/bin/review comments --json        # the same, structured
-.guided-review/bin/review reply <thread-id> -m "handled the null case in abc123"
-```
-
-There is deliberately **no resolve command**. An agent can reply; only the human
-reviewer decides whether their own comment was addressed. Resolved threads are never
-shown to the agent again.
 
 ## How it is put together
 
@@ -115,6 +162,8 @@ grammars VS Code itself uses, bridged into the library's refractor-shaped hook. 
 colour and font comes from `--vscode-*` theme variables, so the panel looks native in
 any theme.
 
+![The same review under a light theme, every colour taken from the editor's own variables](media/screenshot-light.png)
+
 **Grammars load per review, not up front.** All 242 of Shiki's languages ship, split one
 chunk per grammar; the review's changed paths decide which to import, so opening a
 TypeScript review never parses the C++ grammar. Bundling them eagerly instead cost a
@@ -130,7 +179,7 @@ is vsix size — 2 MB rather than 745 KB.
 ## Tests
 
 ```sh
-npm test          # 155 unit and integration tests
+npm test          # 202 unit and integration tests
 npm run typecheck
 npm run lint
 ```
@@ -167,6 +216,8 @@ money per run. Run that locally before tagging.
 
 - No split view. Unified only.
 - Uncommitted work is out of scope by design; this reviews commits.
+- The branch dropdown lists local branches only, and each commit dropdown reaches 50
+  commits back — an older commit cannot be selected as a base.
 - Large diffs are not virtualised yet. `react-diff-view` mounts every row, so a
   several-thousand-line diff will feel heavy; per-file lazy mounting is the planned fix.
 - Binary files render as a stub and cannot be commented on.
@@ -175,3 +226,5 @@ money per run. Run that locally before tagging.
   even when a grammar exists — add it to `extensionOverrides`.
 - Themes other than Default Dark+/Light+ get correct UI colours but Dark+/Light+ token
   colours — VS Code exposes no API for a theme's syntax colours.
+</content>
+</invoke>

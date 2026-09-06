@@ -85,8 +85,16 @@ async function main(): Promise<void> {
   await exec.run('git', ['add', '-A'])
   await exec.run('git', ['commit', '-qm', 'add signed session auth'])
 
+  await writeFile(join(dir, 'src/session.ts'), 'export const ttlSeconds = 3600\n')
+  await exec.run('git', ['add', '-A'])
+  await exec.run('git', ['commit', '-qm', 'pull the session ttl out into a constant'])
+
   const service = new ReviewService(new Git(dir, exec))
-  const key = await service.openBranchReview()
+  const selection = await service.defaultSelection()
+  if (!selection) {
+    throw new Error('demo repository should be on a feature branch')
+  }
+  const key = await service.openSelection(selection)
 
   await service.startThread(key, 'src/auth.ts', 'new', 21, 'JSON.parse on attacker-controlled input — wrap this in a try/catch, a malformed token should 401 not 500.')
   const second = await service.startThread(key, 'src/server.ts', 'new', 9, 'expiry check happens after verify() — fine, but should this be inside verify so every caller gets it?')
@@ -106,13 +114,15 @@ async function main(): Promise<void> {
 
   const { state, files: changed } = await service.load(key)
   const diff = await service.repo.unifiedDiff(state.refs.baseSha, state.refs.headSha)
+  const selector = await service.selector(selection)
 
   process.stderr.write('\nGuide:\n')
   for (const group of state.guide?.groups ?? []) {
     process.stderr.write(`  ${group.title}\n    ${group.summary}\n    ${group.files.join(', ')}\n`)
   }
 
-  await writeFile('scripts/payload.json', JSON.stringify({ state, files: changed, diff, guideBusy: false }, null, 2))
+  const payload = { review: { state, files: changed, diff }, selector, guideBusy: false }
+  await writeFile('scripts/payload.json', JSON.stringify(payload, null, 2))
   process.stderr.write('\nwrote scripts/payload.json\n')
   await rm(dir, { recursive: true, force: true })
 }

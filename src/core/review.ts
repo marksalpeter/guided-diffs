@@ -4,8 +4,9 @@ import type { ReviewEvent } from './events.js'
 import { schemaVersion } from './events.js'
 import { Git } from './git.js'
 import { GuideGenerator, type ClaudeRunner } from './guide.js'
+import type { SelectorState } from './protocol.js'
 import { ReviewStore } from './store.js'
-import type { Anchor, ChangedFile, LineAnchor, ReviewState, Thread } from './types.js'
+import type { Anchor, ChangedFile, LineAnchor, ReviewState, Thread, Timeline } from './types.js'
 
 /** commitPickerLimit is how many recent commits the two-commit picker offers. */
 export const commitPickerLimit = 50
@@ -57,6 +58,57 @@ export class ReviewService {
       at: now(),
     })
     return key
+  }
+
+  /** defaultSelection is where the panel opens: the branch's head against the commit it forked from. */
+  async defaultSelection(): Promise<Selection | null> {
+    const branch = await this.git.currentBranch()
+    const defaultName = await this.git.defaultBranchName()
+    // on the default branch there is no fork to diff against, so the panel asks for a target instead
+    if (!branch || branch === defaultName) {
+      return null
+    }
+    return {
+      branch,
+      baseSha: await this.git.mergeBase(await this.git.defaultBranch(), branch),
+      headSha: await this.git.revParse(branch),
+    }
+  }
+
+  /** selectionForBranch pairs a newly chosen target branch with the fork point it grew from. */
+  async selectionForBranch(branch: string): Promise<Selection> {
+    return {
+      branch,
+      baseSha: await this.git.mergeBase(await this.git.defaultBranch(), branch),
+      headSha: await this.git.revParse(branch),
+    }
+  }
+
+  /** openSelection creates or advances the review for one selected commit pair. */
+  async openSelection(selection: Selection): Promise<string> {
+    const canonical = await this.isCanonical(selection)
+    if (canonical) {
+      return this.openBranchReview()
+    }
+    return this.openRangeReview(selection.baseSha, selection.headSha)
+  }
+
+  /** selector builds the toolbar state, omitting the timeline until a target branch is chosen. */
+  async selector(selection: Selection | null): Promise<SelectorState> {
+    const branches = await this.git.branches()
+    const defaultName = await this.git.defaultBranchName()
+    if (!selection) {
+      const headSha = await this.git.revParse(defaultName)
+      return { branches, baseSha: headSha, headSha, baseBranch: defaultName }
+    }
+    const timeline = await this.git.timeline(selection.branch, commitPickerLimit)
+    return {
+      branches,
+      timeline,
+      baseSha: selection.baseSha,
+      headSha: selection.headSha,
+      baseBranch: branchOwning(timeline, selection.baseSha),
+    }
   }
 
   /** openRangeReview creates a frozen review between two arbitrary revisions. */
@@ -176,6 +228,18 @@ export class ReviewService {
     }
   }
 
+  /** isCanonical reports whether a selection is the branch's own review rather than an ad-hoc pair. */
+  private async isCanonical(selection: Selection): Promise<boolean> {
+    if (selection.branch !== (await this.git.currentBranch())) {
+      return false
+    }
+    const [head, fork] = await Promise.all([
+      this.git.revParse(selection.branch),
+      this.git.mergeBase(await this.git.defaultBranch(), selection.branch),
+    ])
+    return selection.headSha === head && selection.baseSha === fork
+  }
+
   /** appendThread writes the open event and its first comment. */
   private async appendThread(key: string, anchor: Anchor, body: string): Promise<string> {
     const id = `t_${randomUUID().slice(0, 8)}`
@@ -237,8 +301,24 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+/** branchOwning names the branch a selected commit belongs to, which the base chip displays. */
+function branchOwning(timeline: Timeline, sha: string): string {
+  const commit = timeline.commits.find(entry => entry.sha === sha)
+  if (commit?.afterFork) {
+    return timeline.branch
+  }
+  return timeline.forkedFrom || timeline.branch
+}
+
 /** LoadedReview pairs folded state with the diff it describes. */
 export interface LoadedReview {
   state: ReviewState
   files: ChangedFile[]
+}
+
+/** Selection is the branch under review and the two commits picked from its ancestry. */
+export interface Selection {
+  branch: string
+  baseSha: string
+  headSha: string
 }
